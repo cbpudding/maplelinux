@@ -1,0 +1,27 @@
+[submodule "base/src/binutils-gdb"]
+	path = base/src/binutils-gdb
+	url = git://sourceware.org/git/binutils-gdb.git
+[submodule "base/src/gcc"]
+	path = base/src/gcc
+	url = git://gcc.gnu.org/git/gcc.git
+[submodule "base/src/hummingbird"]
+	path = base/src/hummingbird
+	url = https://github.com/Sweets/hummingbird
+[submodule "base/src/linux"]
+	path = base/src/linux
+	url = git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+[submodule "base/src/mdevd"]
+	path = base/src/mdevd
+	url = git://git.skarnet.org/mdevd
+[submodule "base/src/musl"]
+	path = base/src/musl
+	url = git://git.musl-libc.org/musl
+[submodule "base/src/oksh"]
+	path = base/src/oksh
+	url = https://github.com/ibara/oksh
+[submodule "base/src/skalibs"]
+	path = base/src/skalibs
+	url = git://git.skarnet.org/skalibs
+[submodule "base/src/toybox"]
+	path = base/src/toybox
+	url = https://landley.net/toybox/git

@@ -1,0 +1,113 @@
+diff -ruN vanilla/src/init.c maple/src/init.c
+--- vanilla/src/init.c	2026-07-01 20:42:56.803673611 -0400
++++ maple/src/init.c	2026-07-01 20:44:35.670305490 -0400
+@@ -22,28 +22,28 @@
+ 
+ void boot_system() {
+     mount_pseudo_filesystems();
+-    execute("/usr/lib/hummingbird/fs");
++    execute("/lib/hummingbird/fs");
+ 
+     set_hostname();
+     seed_rng_device();
+ 
+-    execute("/usr/lib/hummingbird/interlude");
++    execute("/lib/hummingbird/interlude");
+ 
+     disable_three_finger_salute();
+-    execute("/usr/lib/hummingbird/tty");
++    execute("/lib/hummingbird/tty");
+ }
+ 
+ static void mount_pseudo_filesystems() {
+-    mount("proc", "/proc", "proc",     MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL);
+-    mount("sys",  "/sys",  "sysfs",    MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL);
+-    mount("run",  "/run",  "tmpfs",    MS_NOSUID | MS_NODEV,      "mode=0755");
+-    mount("dev",  "/dev",  "devtmpfs", MS_NOSUID,                 "mode=0755");
++    mount("proc",  "/proc", "proc",     MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL);
++    mount("sys",   "/sys",  "sysfs",    MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL);
++    mount("tmpfs", "/tmp",  "tmpfs",    MS_NOSUID | MS_NODEV,      "mode=0755");
++    mount("dev",   "/dev",  "devtmpfs", MS_NOSUID,                 "mode=0755");
+ }
+ 
+ static void seed_rng_device() {
+     void *seed;
+     struct stat status;
+-    int fd = open("/usr/lib/hummingbird/random.seed", O_RDONLY);
++    int fd = open("/etc/random.seed", O_RDONLY);
+ 
+     if (fd < 0 || fstat(fd, &status) < 0)
+         return;
+@@ -67,11 +67,11 @@
+ static void set_hostname() {
+     struct stat status;
+     void *mapped_file = MAP_FAILED;
+-    char *hostname = "linux";
++    char *hostname = "maple";
+     int fd = open("/etc/hostname", O_RDONLY);
+ 
+     if (fd < 0 || fstat(fd, &status) < 0)
+-        hostname = "linux";
++        hostname = "maple";
+     else {
+         mapped_file = mmap(0, status.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+ 
+diff -ruN vanilla/src/shutdown.c maple/src/shutdown.c
+--- vanilla/src/shutdown.c	2026-07-01 20:42:56.803673611 -0400
++++ maple/src/shutdown.c	2026-07-01 20:45:19.795303591 -0400
+@@ -13,12 +13,10 @@
+ #include "shutdown.h"
+ 
+ static void unmount_filesystems(void);
+-static void clear_directory(char*);
+ static void seed_rng_device(void);
+ 
+ void shutdown_system() {
+-    execute("/usr/lib/hummingbird/shutdown");
+-    clear_directory("/tmp");
++    execute("/lib/hummingbird/shutdown");
+     seed_rng_device();
+     sync();
+ 
+@@ -40,32 +38,6 @@
+     endmntent(mounts);
+ }
+ 
+-static void clear_directory(char *temp_path) {
+-    DIR *directory;
+-    struct dirent *entry;
+-    int strlen_temp_path = strlen(temp_path) + 1;
+-
+-    directory = opendir(temp_path);
+-
+-    if (!directory)
+-        return;
+-
+-    char *full_path;
+-    while ((entry = readdir(directory))) {
+-        full_path = (char *)calloc(strlen_temp_path + strlen(entry->d_name), sizeof(char));
+-
+-        if (!full_path)
+-            continue;
+-
+-        sprintf(full_path, "%s/%s", temp_path, entry->d_name);
+-        remove(full_path);
+-
+-        free(full_path);
+-    }
+-
+-    closedir(directory);
+-}
+-
+ static void seed_rng_device() {
+     void *seed = calloc(512, sizeof(char));
+ 
+@@ -77,7 +49,7 @@
+         return;
+     }
+ 
+-    int fd = open("/usr/lib/hummingbird/random.seed", O_WRONLY | O_CREAT, 0600);
++    int fd = open("/etc/random.seed", O_WRONLY | O_CREAT, 0600);
+ 
+     if (fd < 0)
+         return;
