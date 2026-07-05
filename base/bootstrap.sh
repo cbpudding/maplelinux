@@ -245,47 +245,12 @@ if make -C $DIR_SRC/linux -q dtbs > /dev/null 2>&1; then
     make -C $DIR_SRC/linux -j $(nproc) dtbs_install INSTALL_DTBS_PATH=$DIR_MAPLE O=$(pwd)
 fi
 
-# Build and install libcap
-mkdir -p $DIR_BUILD/build-libcap
-cd $DIR_BUILD/build-libcap
-# NOTE: Not seeing a way to build libcap outside of the source tree. ~ahill
-cp -r $DIR_SRC/libcap/* .
-# TODO: Build a static version of libcap ~ahill
-# NOTE: There is no way to tell libcap to build for a sysroot outside of using
-#       CFLAGS. ~ahill
-# NOTE: libcap's Makefile ignores the CC environment variable, so I double down
-#       on it here. ~ahill
-CFLAGS="--sysroot=$DIR_MAPLE" make -j $(nproc) \
-    CC=$CC \
-    DYNAMIC=no \
-    GOLANG=no \
-    INCDIR=/share/include \
-    LIBDIR=/lib \
-    OBJCOPY=$OBJCOPY \
-    PAM_CAP=no \
-    prefix=/ \
-    RANLIB=$RANLIB \
-    SBINDIR=/bin \
-    SHARED=no
-make -j $(nproc) install \
-    DESTDIR=$DIR_MAPLE \
-    DYNAMIC=no \
-    GOLANG=no \
-    INCDIR=/share/include \
-    LIBDIR=/lib \
-    PAM_CAP=no \
-    prefix=/ \
-    SBINDIR=/bin \
-    SHARED=no
-
 # Build and install ndhc
 mkdir -p $DIR_BUILD/build-ndhc
 cd $DIR_BUILD/build-ndhc
 # NOTE: ndhc does not support out-of-tree builds, so we copy the source here.
 #       ~ahill
 cp -r $DIR_SRC/ndhc/* .
-# TODO: Look into the dependency on sys/capability.h ~ahill
-# See also: https://github.com/niklata/ndhc/issues/11
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -j $(nproc)
 cp ndhc $DIR_MAPLE/bin/
 mkdir -p $DIR_MAPLE/share/man/man8

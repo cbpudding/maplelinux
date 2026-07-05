@@ -31,6 +31,3 @@
 [submodule "base/src/chrony"]
 	path = base/src/chrony
 	url = https://gitlab.com/chrony/chrony
-[submodule "base/src/libcap"]
-	path = base/src/libcap
-	url = https://git.kernel.org/pub/scm/libs/libcap/libcap.git
