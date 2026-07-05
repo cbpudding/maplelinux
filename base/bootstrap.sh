@@ -7,7 +7,7 @@ export DIR_MAPLE=$DIR_BASE/maple
 export DIR_PATCH=$DIR_BASE/patch
 export DIR_SRC=$DIR_BASE/src
 export DIR_TOOLS=$DIR_MAPLE/maple/tools
-export TARGET=x86_64-maple-linux-musl
+export TARGET=${TARGET:-x86_64-maple-linux-musl}
 
 # Prepare a clean build environment
 [ -d $DIR_BUILD ] && rm -rf $DIR_BUILD
@@ -228,5 +228,89 @@ cp -r $DIR_SRC/mdevd/* .
     --with-sysdeps=$DIR_MAPLE/share/skalibs/sysdeps
 make -O -j $(nproc)
 make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
+
+# Build and install Linux
+mkdir -p $DIR_BUILD/build-linux
+cd $DIR_BUILD/build-linux
+# TODO: Create a sane config for Maple Linux ~ahill
+make -C $DIR_SRC/linux -j $(nproc) defconfig O=$(pwd)
+make -C $DIR_SRC/linux -j $(nproc) O=$(pwd)
+make -C $DIR_SRC/linux -j $(nproc) modules_install INSTALL_MOD_PATH=$DIR_MAPLE O=$(pwd)
+cp $(make image_name) $DIR_MAPLE/boot/vmlinuz-$(make kernelrelease)
+cp System.map $DIR_MAPLE/boot/System.map-$(make kernelrelease)
+# NOTE: I have yet to test the following since I have only been testing on x86
+#       so far. ~ahill
+if make -C $DIR_SRC/linux -q dtbs > /dev/null 2>&1; then
+    make -C $DIR_SRC/linux -j $(nproc) dtbs O=$(pwd)
+    make -C $DIR_SRC/linux -j $(nproc) dtbs_install INSTALL_DTBS_PATH=$DIR_MAPLE O=$(pwd)
+fi
+
+# Build and install libcap
+mkdir -p $DIR_BUILD/build-libcap
+cd $DIR_BUILD/build-libcap
+# NOTE: Not seeing a way to build libcap outside of the source tree. ~ahill
+cp -r $DIR_SRC/libcap/* .
+# TODO: Build a static version of libcap ~ahill
+# NOTE: There is no way to tell libcap to build for a sysroot outside of using
+#       CFLAGS. ~ahill
+# NOTE: libcap's Makefile ignores the CC environment variable, so I double down
+#       on it here. ~ahill
+CFLAGS="--sysroot=$DIR_MAPLE" make -j $(nproc) \
+    CC=$CC \
+    DYNAMIC=no \
+    GOLANG=no \
+    INCDIR=/share/include \
+    LIBDIR=/lib \
+    OBJCOPY=$OBJCOPY \
+    PAM_CAP=no \
+    prefix=/ \
+    RANLIB=$RANLIB \
+    SBINDIR=/bin \
+    SHARED=no
+make -j $(nproc) install \
+    DESTDIR=$DIR_MAPLE \
+    DYNAMIC=no \
+    GOLANG=no \
+    INCDIR=/share/include \
+    LIBDIR=/lib \
+    PAM_CAP=no \
+    prefix=/ \
+    SBINDIR=/bin \
+    SHARED=no
+
+# Build and install ndhc
+mkdir -p $DIR_BUILD/build-ndhc
+cd $DIR_BUILD/build-ndhc
+# NOTE: ndhc does not support out-of-tree builds, so we copy the source here.
+#       ~ahill
+cp -r $DIR_SRC/ndhc/* .
+# TODO: Look into the dependency on sys/capability.h ~ahill
+# See also: https://github.com/niklata/ndhc/issues/11
+CFLAGS="-static --sysroot=$DIR_MAPLE" make -j $(nproc)
+cp ndhc $DIR_MAPLE/bin/
+mkdir -p $DIR_MAPLE/share/man/man8
+cp ndhc.8 $DIR_MAPLE/share/man/man8/
+
+# Build and install chrony
+mkdir -p $DIR_BUILD/build-chrony
+cd $DIR_BUILD/build-chrony
+# NOTE: Out of tree builds for chrony are broken. ~ahill
+cp -r $DIR_SRC/chrony/* .
+# TODO: Create an actual user for chrony{c,d} and specify --with{,-chronyc}-user
+#       ~ahill
+# NOTE: There does not appear to be an option to specify a sysroot or static
+#       build, so I'm forced to pass custom CFLAGS instead. ~ahill
+CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
+    --chronyrundir=/tmp \
+    --chronyvardir=/etc/chrony \
+    --disable-readline \
+    --host-machine=$(echo $TARGET | cut -d"-" -f1) \
+    --host-system=Linux \
+    --localstatedir=/etc \
+    --prefix=/ \
+    --sbindir=/bin \
+    --with-pidfile=/tmp/chronyd.pid
+CFLAGS="-static --sysroot=$DIR_MAPLE" make -j $(nproc)
+make -j $(nproc) install DESTDIR=$DIR_MAPLE
 
 # TODO: Build the tools needed to build the system
