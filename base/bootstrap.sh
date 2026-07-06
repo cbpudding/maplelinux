@@ -278,4 +278,92 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -j $(nproc)
 make -j $(nproc) install DESTDIR=$DIR_MAPLE
 
-# TODO: Build the tools needed to build the system
+# Build and install awk
+mkdir -p $DIR_BUILD/build-awk
+cd $DIR_BUILD/build-awk
+# NOTE: I'm sensing a pattern here, but there's no out of tree build. ~ahill
+cp -r $DIR_SRC/awk/* .
+# NOTE: Awk's Makefile makes a few assumptions about the build environment, so I
+#       told it to use the actual cross-compiler and byacc in place of bison.
+#       Outside of the selection of tools, CFLAGS is shared between CC and
+#       HOSTCC, which seems like a bad idea since I need to pass --sysroot.
+#       ~ahill
+make -O -j $(nproc) CC="$CC -static --sysroot=$DIR_MAPLE" YACC="byacc -d -b awkgram"
+# NOTE: There's no make install target in this case, so I hope I'm doing this
+#       correctly. ~ahill
+cp a.out $DIR_MAPLE/bin/awk
+mkdir -p $DIR_MAPLE/share/man/man1
+cp awk.1 $DIR_MAPLE/share/man/man1/
+
+# Build and install byacc
+mkdir -p $DIR_BUILD/build-byacc
+cd $DIR_BUILD/build-byacc
+# NOTE: Despite being based on autotools, this script gave no static or sysroot
+#       options, so I have to pass stuff via CFLAGS. ~ahill
+CFLAGS="-static --sysroot=$DIR_MAPLE" $DIR_SRC/byacc/configure \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix=/ \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $(nproc)
+# NOTE: I don't like software pretending to be something else unless it's for
+#       compatibility, so byacc will actually be called byacc and yacc should be
+#       a symlink. ~ahill
+cp yacc $DIR_MAPLE/bin/byacc
+ln -s byacc $DIR_MAPLE/bin/yacc
+
+# Build and install m4
+mkdir -p $DIR_BUILD/build-m4
+cd $DIR_BUILD/build-m4
+# NOTE: Technically, m4 supports building outside of the source tree, but the
+#       configure script was never committed. Therefore, the configure script
+#       must be created to build the software. The source tree is copied here to
+#       keep DIR_SRC immutable. ~ahill
+cp -r $DIR_SRC/m4/* .
+# NOTE: The bootstrap script will attempt to pull the sources from the network,
+#       which is something I want to avoid. A pure bootstrap doesn't need to
+#       reach out to *any* server for *anything*. ~ahill
+./bootstrap --gnulib-srcdir=$DIR_SRC/gnulib --skip-git --skip-po
+# NOTE: Once again, static and sysroot are not options here. ~ahill
+CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix=/ \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $(nproc)
+make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
+
+# TODO: Build and install autoconf
+
+# TODO: Build and install automake
+
+# TODO: Build and install diffutils
+
+# TODO: Build and install flex
+
+# TODO: Build and install libtool
+
+# TODO: Build and install make
+
+# TODO: Build and install muon
+
+# TODO: Build and install Perl
+
+# TODO: Build and install xz
+
+# TODO: Build and install binutils
+
+# TODO: Build and install gcc
+
+# TODO: Decide on a gzip implementation

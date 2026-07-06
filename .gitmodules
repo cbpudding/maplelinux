@@ -31,3 +31,15 @@
 [submodule "base/src/chrony"]
 	path = base/src/chrony
 	url = https://gitlab.com/chrony/chrony
+[submodule "base/src/awk"]
+	path = base/src/awk
+	url = https://github.com/onetrueawk/awk
+[submodule "base/src/byacc"]
+	path = base/src/byacc
+	url = https://github.com/ThomasDickey/byacc-snapshots
+[submodule "base/src/m4"]
+	path = base/src/m4
+	url = https://https.git.savannah.gnu.org/git/m4.git
+[submodule "base/src/gnulib"]
+	path = base/src/gnulib
+	url = https://git.savannah.gnu.org/git/gnulib.git
