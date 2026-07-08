@@ -280,6 +280,30 @@ make -j $(nproc) install DESTDIR=$DIR_MAPLE
 
 # TODO: Build and install bsdutils
 
+# Build and install xz
+mkdir -p $DIR_BUILD/build-xz
+cd $DIR_BUILD/build-xz
+# NOTE: Curse you auto-generating build scripts! ~ahill
+cp -r $DIR_SRC/xz/* .
+./autogen.sh --no-po4a
+# TODO: Is sysroot even required if the compiler is told to use the sysroot
+#       anyways? ~ahill
+CFLAGS="--sysroot=$DIR_MAPLE" ./configure \
+    --disable-shared \
+    --enable-year2038 \
+    --build=$(build-aux/config.guess) \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix=/ \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+CFLAGS="--sysroot=$DIR_MAPLE" make -O -j $(nproc)
+make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
+
 # Build and install awk
 mkdir -p $DIR_BUILD/build-awk
 cd $DIR_BUILD/build-awk
@@ -370,21 +394,31 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $(nproc)
 make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
 
+# Build and install bc
+mkdir -p $DIR_BUILD/build-bc
+cd $DIR_BUILD/build-bc
+CFLAGS="-static" $DIR_SRC/bc/configure \
+    --enable-internal-history \
+    --includedir /share/include \
+    --prefix /
+make -O -j $(nproc)
+make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
+
+# TODO: Build and install flex
+# TODO: Can the original lex from the Heirloom Project work here? ~ahill
+
 # TODO: Build and install autoconf
 
 # TODO: Build and install automake
 
-# TODO: Build and install flex
-
 # TODO: Build and install libtool
+# TODO: Would slibtool be a better fit? ~ahill
 
 # TODO: Build and install muon
 
 # TODO: Build and install Perl
 
 # TODO: Build and install pkgconf
-
-# TODO: Build and install xz
 
 # TODO: Build and install binutils
 

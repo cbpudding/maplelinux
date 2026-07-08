@@ -46,3 +46,9 @@
 [submodule "base/src/make"]
 	path = base/src/make
 	url = https://https.git.savannah.gnu.org/git/make.git
+[submodule "base/src/xz"]
+	path = base/src/xz
+	url = https://github.com/tukaani-project/xz
+[submodule "base/src/bc"]
+	path = base/src/bc
+	url = https://github.com/gavinhoward/bc
