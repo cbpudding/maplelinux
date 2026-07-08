@@ -278,6 +278,8 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -j $(nproc)
 make -j $(nproc) install DESTDIR=$DIR_MAPLE
 
+# TODO: Build and install bsdutils
+
 # Build and install awk
 mkdir -p $DIR_BUILD/build-awk
 cd $DIR_BUILD/build-awk
@@ -344,26 +346,46 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $(nproc)
 make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
 
+# Build and install make
+mkdir -p $DIR_BUILD/build-make
+cd $DIR_BUILD/build-make
+# NOTE: Like a lot of GNU software, the configure script needs to be
+#       bootstrapped. ~ahill
+cp -r $DIR_SRC/make/* .
+./bootstrap --gen --gnulib-srcdir=$DIR_SRC/gnulib --no-git --skip-po
+patch -p1 < $DIR_PATCH/make-maple.patch
+# NOTE: Configure doesn't give static and sysroot as options! ~ahill
+CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
+    --build=$(build-aux/config.guess) \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix=/ \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $(nproc)
+make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
+
 # TODO: Build and install autoconf
 
 # TODO: Build and install automake
-
-# TODO: Build and install diffutils
 
 # TODO: Build and install flex
 
 # TODO: Build and install libtool
 
-# TODO: Build and install make
-
 # TODO: Build and install muon
 
 # TODO: Build and install Perl
+
+# TODO: Build and install pkgconf
 
 # TODO: Build and install xz
 
 # TODO: Build and install binutils
 
 # TODO: Build and install gcc
-
-# TODO: Decide on a gzip implementation

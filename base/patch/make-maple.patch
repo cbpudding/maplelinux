@@ -1,0 +1,78 @@
+diff -ruN vanilla/lib/concat-filename.c maple/lib/concat-filename.c
+--- vanilla/lib/concat-filename.c	2026-07-07 21:10:34.965187496 -0400
++++ maple/lib/concat-filename.c	2026-07-07 20:39:28.204638661 -0400
+@@ -39,7 +39,7 @@
+   char *result;
+   char *p;
+ 
+-  if (streq (directory, "."))
++  if (!strcmp(directory, "."))
+     {
+       /* No need to prepend the directory.  */
+       result = (char *) malloc (strlen (filename)
+diff -ruN vanilla/lib/findprog-in.c maple/lib/findprog-in.c
+--- vanilla/lib/findprog-in.c	2026-07-07 21:10:34.965789710 -0400
++++ maple/lib/findprog-in.c	2026-07-07 20:39:56.468637745 -0400
+@@ -143,7 +143,7 @@
+                             if (! S_ISDIR (statbuf.st_mode))
+                               {
+                                 /* Found!  */
+-                                if (streq (progpathname, progname))
++                                if (!strcmp(progpathname, progname))
+                                   {
+                                     free (progpathname);
+                                     return progname;
+@@ -288,7 +288,7 @@
+                         if (! S_ISDIR (statbuf.st_mode))
+                           {
+                             /* Found!  */
+-                            if (streq (progpathname, progname))
++                            if (!strcmp(progpathname, progname))
+                               {
+                                 free (progpathname);
+ 
+diff -ruN vanilla/lib/fnmatch.c maple/lib/fnmatch.c
+--- vanilla/lib/fnmatch.c	2026-07-07 21:10:34.966199296 -0400
++++ maple/lib/fnmatch.c	2026-07-07 20:40:21.477636934 -0400
+@@ -120,10 +120,6 @@
+ /* Avoid depending on library functions or files
+    whose names are inconsistent.  */
+ 
+-# if !defined _LIBC && !defined getenv
+-extern char *getenv ();
+-# endif
+-
+ # ifndef errno
+ extern int errno;
+ # endif
+diff -ruN vanilla/Makefile.am maple/Makefile.am
+--- vanilla/Makefile.am	2026-07-07 20:34:15.181648811 -0400
++++ maple/Makefile.am	2026-07-07 20:51:56.741614390 -0400
+@@ -30,8 +30,7 @@
+ 
+ make_SRCS =	src/ar.c src/arscan.c src/commands.c src/commands.h \
+ 		src/debug.h src/default.c src/dep.h src/dir.c src/expand.c \
+-		src/file.c src/filedef.h src/function.c src/getopt.c \
+-		src/getopt.h src/getopt1.c src/gettext.h src/guile.c \
++		src/file.c src/filedef.h src/function.c src/gettext.h src/guile.c \
+ 		src/hash.c src/hash.h src/implicit.c src/job.c src/job.h \
+ 		src/load.c src/loadapi.c src/main.c src/makeint.h src/misc.c \
+ 		src/mkcustom.h src/os.h src/output.c src/output.h src/read.c \
+diff -ruN vanilla/src/getopt.h maple/src/getopt.h
+--- vanilla/src/getopt.h	2026-07-07 20:34:15.189243828 -0400
++++ maple/src/getopt.h	2026-07-07 20:55:24.220607663 -0400
+@@ -96,14 +96,6 @@
+ #define optional_argument	2
+ 
+ #if defined (__STDC__) && __STDC__
+-#ifdef __GNU_LIBRARY__
+-/* Many other libraries have conflicting prototypes for getopt, with
+-   differences in the consts, in stdlib.h.  To avoid compilation
+-   errors, only prototype getopt for the GNU C library.  */
+-extern int getopt (int argc, char *const *argv, const char *shortopts);
+-#else /* not __GNU_LIBRARY__ */
+-extern int getopt ();
+-#endif /* __GNU_LIBRARY__ */
+ extern int getopt_long (int argc, char *const *argv, const char *shortopts,
+ 		        const struct option *longopts, int *longind);
+ extern int getopt_long_only (int argc, char *const *argv,

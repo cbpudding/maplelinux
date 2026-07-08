@@ -43,3 +43,6 @@
 [submodule "base/src/gnulib"]
 	path = base/src/gnulib
 	url = https://git.savannah.gnu.org/git/gnulib.git
+[submodule "base/src/make"]
+	path = base/src/make
+	url = https://https.git.savannah.gnu.org/git/make.git
