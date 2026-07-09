@@ -404,8 +404,28 @@ CFLAGS="-static" $DIR_SRC/bc/configure \
 make -O -j $(nproc)
 make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
 
-# TODO: Build and install flex
-# TODO: Can the original lex from the Heirloom Project work here? ~ahill
+# Build and install lex
+mkdir -p $DIR_BUILD/build-lex
+cd $DIR_BUILD/build-lex
+# NOTE: This is old enough that I'll be impressed if it works. Who cares if it
+#       doesn't support out of tree builds, it builds! ~ahill
+cp -r $DIR_SRC/heirloom-devtools/lex/* .
+# NOTE: For some reason, the Makefile doesn't do this part. ~ahill
+byacc parser.y -o parser.c
+# NOTE: LIBDIR *must* be defined here because it's compiling the path into the
+#       executable. ~ahill
+CFLAGS="-static --sysroot=$DIR_MAPLE" \
+    make -f Makefile.mk -O -j $(nproc) LIBDIR=/share
+# NOTE: make install wants to do some strange things so I'm installing this
+#       manually. ~ahill
+cp lex $DIR_MAPLE/bin/
+mkdir -p $DIR_MAPLE/share/lex
+cp nceucform $DIR_MAPLE/share/lex/
+cp ncform $DIR_MAPLE/share/lex/
+cp nrform $DIR_MAPLE/share/lex/
+mkdir -p $DIR_MAPLE/share/man/man1
+cp lex.1 $DIR_MAPLE/share/man/man1/
+cp libl.a $DIR_MAPLE/lib/
 
 # TODO: Build and install autoconf
 

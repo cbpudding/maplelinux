@@ -52,3 +52,6 @@
 [submodule "base/src/bc"]
 	path = base/src/bc
 	url = https://github.com/gavinhoward/bc
+[submodule "base/src/heirloom-devtools"]
+	path = base/src/heirloom-devtools
+	url = https://github.com/heirloom-project/heirloom-devtools
