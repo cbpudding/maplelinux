@@ -1,0 +1,178 @@
+diff -ruN vanilla/diff/diff.c maple/diff/diff.c
+--- vanilla/diff/diff.c	2026-07-12 09:32:37.927601595 -0400
++++ maple/diff/diff.c	2026-07-12 09:43:35.379573305 -0400
+@@ -78,6 +78,53 @@
+ #include <unistd.h>
+ #include <locale.h>
+ #include <iblok.h>
++
++/* Begin global variables */
++int opt;
++
++int aflag;
++int tflag;
++int pflag;
++
++int hflag;
++int bflag;
++int wflag;
++int iflag;
++int Bflag;
++
++int lflag;
++int rflag;
++int sflag;
++int Nflag;
++const char *start;
++
++struct xclusion *xflag;
++
++int wantelses;
++char *ifdef1;
++char *ifdef2;
++char *endifname;
++int inifdef;
++
++int context;
++
++int status;
++int anychange;
++char *tempfile1;
++char *tempfile2;
++
++char **diffargv;
++int recdepth;
++jmp_buf recenv;
++
++struct stackblk *curstack;
++
++char *file1, *file2, *efile1, *efile2;
++struct stat stb1, stb2;
++
++int mb_cur_max;
++/* End global variables */
++
+ /*
+  * diff - driver and subroutines
+  */
+diff -ruN vanilla/diff/diff.h maple/diff/diff.h
+--- vanilla/diff/diff.h	2026-07-12 09:32:37.927601595 -0400
++++ maple/diff/diff.h	2026-07-12 09:37:30.251589017 -0400
+@@ -106,7 +106,7 @@
+ /*
+  * Output format options
+  */
+-int	opt;
++extern  int	opt;
+ 
+ #define	D_NORMAL	0	/* Normal output */
+ #define	D_EDIT		-1	/* Editor script out */
+@@ -117,29 +117,29 @@
+ 				   lines and no trailing . */
+ #define	D_UNIFIED	5	/* Unified diff */
+ 
+-int	aflag;			/* diff binary files */
+-int	tflag;			/* expand tabs on output */
+-int	pflag;			/* show surrounding C function */
++extern int	aflag;			/* diff binary files */
++extern int	tflag;			/* expand tabs on output */
++extern int	pflag;			/* show surrounding C function */
+ 
+ /*
+  * Algorithm related options
+  */
+-int	hflag;			/* -h, use halfhearted DIFFH */
+-int	bflag;			/* ignore blanks in comparisons */
+-int	wflag;			/* totally ignore blanks in comparisons */
+-int	iflag;			/* ignore case in comparisons */
+-int	Bflag;			/* ignore changes that consist of blank lines */
++extern int	hflag;			/* -h, use halfhearted DIFFH */
++extern int	bflag;			/* ignore blanks in comparisons */
++extern int	wflag;			/* totally ignore blanks in comparisons */
++extern int	iflag;			/* ignore case in comparisons */
++extern int	Bflag;			/* ignore changes that consist of blank lines */
+ 
+ /*
+  * Options on hierarchical diffs.
+  */
+-int	lflag;			/* long output format with header */
+-int	rflag;			/* recursively trace directories */
+-int	sflag;			/* announce files which are same */
+-int	Nflag;			/* write text of nonexistant files */
+-const char	*start;		/* do file only if name >= this */
++extern int	lflag;			/* long output format with header */
++extern int	rflag;			/* recursively trace directories */
++extern int	sflag;			/* announce files which are same */
++extern int	Nflag;			/* write text of nonexistant files */
++extern const char	*start;		/* do file only if name >= this */
+ 
+-struct xclusion {
++extern struct xclusion {
+ 	struct xclusion	*x_nxt;
+ 	const char	*x_pat;
+ }	*xflag;			/* patterns to exclude from comparison */
+@@ -147,33 +147,33 @@
+ /*
+  * Variables for -I D_IFDEF option.
+  */
+-int	wantelses;		/* -E */
+-char	*ifdef1;		/* String for -1 */
+-char	*ifdef2;		/* String for -2 */
+-char	*endifname;		/* What we will print on next #endif */
+-int	inifdef;
++extern int	wantelses;		/* -E */
++extern char	*ifdef1;		/* String for -1 */
++extern char	*ifdef2;		/* String for -2 */
++extern char	*endifname;		/* What we will print on next #endif */
++extern int	inifdef;
+ 
+ /*
+  * Variables for -c context option.
+  */
+-int	context;		/* lines of context to be printed */
++extern int	context;		/* lines of context to be printed */
+ 
+ /*
+  * State for exit status.
+  */
+-int	status;
+-int	anychange;
+-char	*tempfile1;		/* used when comparing against std input */
+-char	*tempfile2;		/* used when comparing against std input */
++extern int	status;
++extern int	anychange;
++extern char	*tempfile1;		/* used when comparing against std input */
++extern char	*tempfile2;		/* used when comparing against std input */
+ 
+ /*
+  * Variables for diffdir.
+  */
+-char	**diffargv;		/* option list to pass to recursive diffs */
+-int	recdepth;		/* recursion depth */
+-jmp_buf	recenv;			/* jump stack on error */
++extern char	**diffargv;		/* option list to pass to recursive diffs */
++extern int	recdepth;		/* recursion depth */
++extern jmp_buf	recenv;			/* jump stack on error */
+ 
+-struct stackblk {
++extern struct stackblk {
+ 	struct stackblk	*s_prev;
+ 	struct stackblk	*s_next;
+ } *curstack;
+@@ -184,13 +184,13 @@
+  * and padded with a '/', and then efile0 and efile1 point after
+  * the '/'.
+  */
+-char	*file1, *file2, *efile1, *efile2;
+-struct	stat stb1, stb2;
++extern char	*file1, *file2, *efile1, *efile2;
++extern struct	stat stb1, stb2;
+ 
+ extern	const char diffh[], diff[], pr[];
+ extern	const char *argv0;
+ extern	const char *progname;
+-int	mb_cur_max;
++extern int	mb_cur_max;
+ extern int	sysv3;
+ 
+ /* diff.c */

@@ -55,3 +55,15 @@
 [submodule "base/src/heirloom-devtools"]
 	path = base/src/heirloom-devtools
 	url = https://github.com/heirloom-project/heirloom-devtools
+[submodule "base/src/mpfr"]
+	path = base/src/mpfr
+	url = https://gitlab.inria.fr/mpfr/mpfr
+[submodule "base/src/mpc"]
+	path = base/src/mpc
+	url = https://gitlab.inria.fr/mpc/mpc
+[submodule "base/src/mpir"]
+	path = base/src/mpir
+	url = https://github.com/BrianGladman/mpir
+[submodule "base/src/heirloom-toolchest"]
+	path = base/src/heirloom-toolchest
+	url = https://github.com/heirloom-project/heirloom-toolchest
