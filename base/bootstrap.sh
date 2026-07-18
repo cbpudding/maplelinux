@@ -66,8 +66,23 @@ make -O -j $JOBS install
 # Build the cross-compiler
 mkdir -p $DIR_BUILD/cross-gcc
 cd $DIR_BUILD/cross-gcc
-$DIR_SRC/gcc/configure \
-    --build=$($DIR_SRC/gcc/config.guess) \
+# NOTE: Technically, gcc supports an out-of-tree build, but GCC doesn't conform
+#       to Maple Linux's filesystem hierarchy and installs libraries like
+#       libstdc++ under /lib64 instead of /lib. To fix this, the cross-compiler
+#       itself needs to be patched since autoconf follows gcc's lead. ~ahill
+cp -r $DIR_SRC/gcc/. .
+# NOTE: Credit to Linux From Scratch for this patch. It would have taken me a
+#       long time to figure this one out otherwise. ~ahill
+# TODO: Will similar patches be required for other architectures? ~ahill
+sed -i "/m64=/s/lib64/lib/" gcc/config/i386/t-linux64
+# NOTE: gcc makes some assumptions about the directory structure due to the way
+#       relative paths are coded. A successful build requires a subdirectory so
+#       the parts of the build script that use "../.." can get back to the root
+#       of the source code. ~ahill
+mkdir build-within-a-build
+cd build-within-a-build
+../configure \
+    --build=$(../config.guess) \
     --disable-libatomic \
     --disable-libgomp \
     --disable-libquadmath \
@@ -580,16 +595,42 @@ autoreconf -i
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# TODO: Build and install libstdc++
+# Build and install libstdc++
+mkdir -p $DIR_BUILD/build-libstdc++
+cd $DIR_BUILD/build-libstdc++
+# NOTE: Even though this is GPL-licensed, I'm building the static version of
+#       libstdc++ because it seems to fall under either LGPL or the GCC RUNTIME
+#       LIBRARY EXCEPTION, found under COPYING.LIB and COPYING.RUNTIME
+#       respectively. In theory, this means there is no licensing violation from
+#       accidentally linking this statically. ~ahill
+$DIR_SRC/gcc/libstdc++-v3/configure \
+    --build=$($DIR_SRC/gcc/config.guess) \
+    --disable-libstdcxx-pch \
+    --disable-multilib \
+    --disable-nls \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix=/ \
+    --sbindir=/bin \
+    --sharedstatedir=/etc \
+    --with-gcc-major-version-only \
+    --with-gxx-include-dir=/maple/tools/$TARGET/include/c++/16
+make -O -j $(nproc)
+make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
 
 # Build and install binutils
 mkdir -p $DIR_BUILD/build-binutils
 cd $DIR_BUILD/build-binutils
-# FIXME: Try GDB again after build libstdc++ ~ahill
-$DIR_SRC/binutils-gdb/configure \
-    --build=$($DIR_SRC/binutils-gdb/config.guess) \
-    --disable-gdb \
-    --disable-gdbserver \
+# NOTE: binutils can handle out of tree builds, but there's apparently a
+#       *slight* API incompatibility with struct termios that prevents
+#       gdb/ser-unix.c from building properly under musl. ~ahill
+cp -r $DIR_SRC/binutils-gdb/. .
+patch -p1 < $DIR_PATCH/gdb-musl-compat.patch
+./configure \
+    --build=$(./config.guess) \
     --enable-year2038 \
     --host=$TARGET \
     --includedir=/share/include \
