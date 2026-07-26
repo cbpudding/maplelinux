@@ -91,13 +91,12 @@ cd build-within-a-build
     --disable-libstdcxx \
     --disable-multilib \
     --disable-nls \
-    --disable-shared \
     --disable-threads \
     --enable-default-pie \
     --enable-default-ssp \
     --enable-languages=c,c++ \
     --enable-year2038 \
-    --host=$($DIR_SRC/gcc/config.guess) \
+    --host=$(../config.guess) \
     --includedir=$DIR_TOOLS/share/include \
     --libexecdir=$DIR_TOOLS/lib \
     --localstatedir=$DIR_TOOLS/etc \
@@ -108,27 +107,31 @@ cd build-within-a-build
     --target=$TARGET \
     --with-gcc-major-version-only \
     --with-gmp=$DIR_SRC/mpir \
-    --with-isl=no \
     --with-mpc=$DIR_SRC/mpc \
     --with-mpfr=$DIR_SRC/mpfr \
     --with-native-system-header-dir=/share/include \
     --with-newlib \
     --with-sysroot=$DIR_MAPLE \
-    --without-headers
+    --without-headers \
+    --without-isl
 make -O -j $JOBS
 make -O -j $JOBS install
+# NOTE: Even gcc uses cc instead of gcc in some places, so a symlink is required
+#       for future builds to succeed. ~ahill
+ln -s $TARGET-gcc $DIR_TOOLS/bin/$TARGET-cc
 
 # Re-define the build environment to use the new tools
-export AR="$DIR_TOOLS/bin/$TARGET-ar"
-export AS="$DIR_TOOLS/bin/$TARGET-as"
-export CC="$DIR_TOOLS/bin/$TARGET-gcc"
-export CXX="$DIR_TOOLS/bin/$TARGET-g++"
-export LD="$DIR_TOOLS/bin/$TARGET-ld"
-export NM="$DIR_TOOLS/bin/$TARGET-nm"
-export OBJCOPY="$DIR_TOOLS/bin/$TARGET-objcopy"
-export OBJDUMP="$DIR_TOOLS/bin/$TARGET-objdump"
-export RANLIB="$DIR_TOOLS/bin/$TARGET-ranlib"
-export STRIP="$DIR_TOOLS/bin/$TARGET-strip"
+export AR="$TARGET-ar"
+export AS="$TARGET-as"
+export CC="$TARGET-gcc"
+export CXX="$TARGET-g++"
+export LD="$TARGET-ld"
+export NM="$TARGET-nm"
+export OBJCOPY="$TARGET-objcopy"
+export OBJDUMP="$TARGET-objdump"
+export PATH="$DIR_TOOLS/bin:$PATH"
+export RANLIB="$TARGET-ranlib"
+export STRIP="$TARGET-strip"
 
 # Install Linux headers
 mkdir -p $DIR_BUILD/build-linux
@@ -512,6 +515,8 @@ cp lex.1 $DIR_MAPLE/share/man/man1/
 
 # TODO: Build and install Perl
 
+# TODO: Build and install git
+
 # Build and install MPIR
 mkdir -p $DIR_BUILD/build-mpir
 cd $DIR_BUILD/build-mpir
@@ -621,6 +626,9 @@ $DIR_SRC/gcc/libstdc++-v3/configure \
 make -O -j $(nproc)
 make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
 
+# Clean libtool files since they are harmful for cross-compilation
+find $DIR_MAPLE/lib -type f -name "*.la" -delete
+
 # Build and install binutils
 mkdir -p $DIR_BUILD/build-binutils
 cd $DIR_BUILD/build-binutils
@@ -628,9 +636,14 @@ cd $DIR_BUILD/build-binutils
 #       *slight* API incompatibility with struct termios that prevents
 #       gdb/ser-unix.c from building properly under musl. ~ahill
 cp -r $DIR_SRC/binutils-gdb/. .
-patch -p1 < $DIR_PATCH/gdb-musl-compat.patch
+#patch -p1 < $DIR_PATCH/gdb-musl-compat.patch
+# FIXME: gdb requires readline to function, which is not installed right now.
+#        I'll have to revisit this later. ~ahill
 ./configure \
     --build=$(./config.guess) \
+    --disable-gdb \
+    --disable-gdbserver \
+    --disable-static \
     --enable-year2038 \
     --host=$TARGET \
     --includedir=/share/include \
@@ -640,6 +653,7 @@ patch -p1 < $DIR_PATCH/gdb-musl-compat.patch
     --prefix=/ \
     --sbindir=/bin \
     --sharedstatedir=/etc \
+    --target=$TARGET \
     --with-build-sysroot=$DIR_MAPLE \
     --with-gcc-major-version-only
 make -O -j $JOBS
@@ -647,6 +661,56 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
 # TODO: Build and install (nasm? yasm?)
 
-# TODO: Build and install gcc
+# Build and install gcc
+# FIXME: Why does this segfault? ~ahill
+mkdir -p $DIR_BUILD/build-gcc
+cd $DIR_BUILD/build-gcc
+# NOTE: Technically, gcc supports an out-of-tree build, but GCC doesn't conform
+#       to Maple Linux's filesystem hierarchy and installs libraries like
+#       libstdc++ under /lib64 instead of /lib. To fix this, the cross-compiler
+#       itself needs to be patched since autoconf follows gcc's lead. ~ahill
+cp -r $DIR_SRC/gcc/. .
+# NOTE: Credit to Linux From Scratch for this patch. It would have taken me a
+#       long time to figure this one out otherwise. ~ahill
+# TODO: Will similar patches be required for other architectures? ~ahill
+sed -i "/m64=/s/lib64/lib/" gcc/config/i386/t-linux64
+# NOTE: gcc makes some assumptions about the directory structure due to the way
+#       relative paths are coded. A successful build requires a subdirectory so
+#       the parts of the build script that use "../.." can get back to the root
+#       of the source code. ~ahill
+mkdir build-within-a-build
+cd build-within-a-build
+# NOTE: LDFLAGS_FOR_TARGET is specified here since the libgcc in $DIR_MAPLE is
+#       insufficient for C++ to function properly. This forces it to link with
+#       the new libgcc it just built. ~ahill
+LDFLAGS_FOR_TARGET="-L$(pwd)/$TARGET/libgcc" ../configure \
+    --build=$(../config.guess) \
+    --disable-libatomic \
+    --disable-libgomp \
+    --disable-libquadmath \
+    --disable-libsanitizer \
+    --disable-libssp \
+    --disable-libvtv \
+    --disable-multilib \
+    --disable-nls \
+    --enable-default-pie \
+    --enable-default-ssp \
+    --enable-languages=c,c++ \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix=/ \
+    --sbindir=/bin \
+    --sharedstatedir=/etc \
+    --target=$TARGET \
+    --with-build-sysroot=$DIR_MAPLE \
+    --with-gcc-major-version-only \
+    --with-native-system-header-dir=/share/include
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+ln -s gcc $DIR_MAPLE/bin/cc
 
 # TODO: Prepare the image
