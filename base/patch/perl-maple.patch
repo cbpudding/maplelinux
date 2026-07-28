@@ -1,0 +1,93 @@
+diff -ruN vanilla/ext/Errno/Errno_pm.PL maple/ext/Errno/Errno_pm.PL
+--- vanilla/ext/Errno/Errno_pm.PL	2026-07-27 20:05:55.364404904 -0400
++++ maple/ext/Errno/Errno_pm.PL	2026-07-27 20:08:20.120568265 -0400
+@@ -57,13 +57,13 @@
+ 	unless(open(FH," LIBRARY/EXTRACT=ERRNO/OUTPUT=SYS\$OUTPUT $file |")) {
+             warn "Cannot open '$file'";
+             return;
+-	}     
++	}
+     } elsif ($Config{gccversion} ne '' && $^O ne 'darwin' ) {
+ 	# With the -dM option, gcc outputs every #define it finds
+ 	unless(open(FH,"$Config{cc} -E -dM $Config{cppflags} $file |")) {
+             warn "Cannot open '$file'";
+             return;
+-	}     
++	}
+     } else {
+ 	unless(open(FH, '<', $file)) {
+ 	    # This file could be a temporary file created by cppstdin
+@@ -72,7 +72,7 @@
+             return;
+ 	}
+     }
+-    
++
+     my $pat;
+     if ($IsMSWin32) {
+ 	$pat = '^\s*#\s*define\s+((?:WSA)?E\w+)\s+';
+@@ -115,7 +115,7 @@
+ 	# Some Linuxes have weird errno.hs which generate
+ 	# no #file or #line directives
+ 	($linux_errno_h) = grep { -e $_ } map { "$_/errno.h" }
+-	    "$sysroot/usr/include", "$sysroot/usr/local/include",
++	    "$sysroot/share/include", "$sysroot/share/local/include",
+ 	    split / / => $Config{locincpth};
+     }
+ 
+@@ -126,7 +126,7 @@
+ 	# OS/390 C compiler doesn't generate #file or #line directives
+         # and it does not tag the header as 1047 (EBCDIC), so make a local
+         # copy and tag it
+-        my $cp = `cp /usr/include/errno.h ./errno.h`;
++        my $cp = `cp /share/include/errno.h ./errno.h`;
+         my $chtag = `chtag -t -cIBM-1047 ./errno.h`;
+ 	push(@file, './errno.h');
+     } elsif ($Config{archname} eq 'arm-riscos') {
+@@ -136,7 +136,7 @@
+ 	     push(@file, $1);
+ 	}
+     } elsif ($^O eq 'linux' &&
+-	      $Config{gccversion} ne '' && 
++	      $Config{gccversion} ne '' &&
+ 	      $Config{gccversion} !~ /intel/i &&
+ 	      # might be using, say, Intel's icc
+ 	      $linux_errno_h
+@@ -188,7 +188,7 @@
+     return uniq(@file);
+ }
+ 
+-# 
++#
+ #
+ sub uniq
+ {
+@@ -217,7 +217,7 @@
+     if ($IsMSWin32) {
+ 	print CPPI qq[#include "../../win32/include/sys/errno2.h"\n];
+     }
+- 
++
+     foreach $err (keys %err) {
+ 	print CPPI '"',$err,'" [[',$err,']]',"\n";
+     }
+@@ -349,7 +349,7 @@
+     POSIX => [qw(
+ ESQ
+ 
+-    my $k = join(" ", grep { exists $err{$_} } 
++    my $k = join(" ", grep { exists $err{$_} }
+ 	qw(E2BIG EACCES EADDRINUSE EADDRNOTAVAIL EAFNOSUPPORT
+ 	EAGAIN EALREADY EBADF EBUSY ECHILD ECONNABORTED
+ 	ECONNREFUSED ECONNRESET EDEADLK EDESTADDRREQ EDOM EDQUOT
+@@ -441,8 +441,8 @@
+             warn "Get a wife!\n";
+         } else {
+             warn "This path is barred: $!";
+-        } 
+-    } 
++        }
++    }
+ 
+ If a specified constant C<EFOO> does not exist on the system, C<$!{EFOO}>
+ returns C<"">.  You may use C<exists $!{EFOO}> to check whether the

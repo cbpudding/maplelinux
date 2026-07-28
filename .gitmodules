@@ -67,3 +67,9 @@
 [submodule "base/src/heirloom-toolchest"]
 	path = base/src/heirloom-toolchest
 	url = https://github.com/heirloom-project/heirloom-toolchest
+[submodule "base/src/perl"]
+	path = base/src/perl
+	url = https://github.com/perl/perl5
+[submodule "base/src/perl-cross"]
+	path = base/src/perl-cross
+	url = https://github.com/arsv/perl-cross

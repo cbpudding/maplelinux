@@ -124,6 +124,7 @@ ln -s $TARGET-gcc $DIR_TOOLS/bin/$TARGET-cc
 export AR="$TARGET-ar"
 export AS="$TARGET-as"
 export CC="$TARGET-gcc"
+export CPP="$TARGET-cpp"
 export CXX="$TARGET-g++"
 export LD="$TARGET-ld"
 export NM="$TARGET-nm"
@@ -506,14 +507,46 @@ cp lex.1 $DIR_MAPLE/share/man/man1/
 #        not accidentally conflict other licenses such as GPL? ~ahill
 #cp libl.a $DIR_MAPLE/lib/
 
+# Build and install Perl
+mkdir -p $DIR_BUILD/build-perl
+cd $DIR_BUILD/build-perl
+# NOTE: Perl doesn't have the ability to properly cross-compile itself, so
+#       perl-cross is used to make that possible. ~ahill
+cp -r $DIR_SRC/perl/. .
+# NOTE: Perl makes some crazy assumptions about the system. Who would ever want
+#       to put header files under /usr/include? /s ~ahill
+patch -p1 < $SRC_PATCH/perl-maple.patch
+cp -r $DIR_SRC/perl-cross/. .
+# TODO: Is it necessary to put the full Perl version in the archlib/privlib path
+#       if the system is built as a single artifact? ~ahill
+# NOTE: perl-cross tests for non-standard functions such as memrchr, which only
+#       exists on musl if _GNU_SOURCE is defined. When perl-cross runs tests, it
+#       always adds a "#define _GNU_SOURCE", but the Perl source code doesn't.
+#       As a result, compilation fails due to undefined functions. Manually
+#       passing -D_GNU_SOURCE fixes this. ~ahill
+CFLAGS="$CFLAGS -D_GNU_SOURCE" ./configure \
+    --build=$(./cnf/config.guess) \
+    -Darchlib=/lib/perl5 \
+    -Dbin=/bin \
+    -Dprivlib=/share/perl5 \
+    -Dscriptdir=/bin \
+    -Dusrinc=/share/include \
+    --html1dir=/share/doc/perl/html/man1 \
+    --html3dir=/share/doc/perl/html/man3 \
+    --man1dir=/share/man/man1 \
+    --man3dir=/share/man/man3 \
+    --prefix=/ \
+    --sysroot="$DIR_MAPLE" \
+    --target=$TARGET
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+
 # TODO: Build and install autoconf
 
 # TODO: Build and install automake
 
 # TODO: Build and install libtool
 # TODO: Would slibtool be a better fit? ~ahill
-
-# TODO: Build and install Perl
 
 # TODO: Build and install git
 
