@@ -73,3 +73,21 @@
 [submodule "base/src/perl-cross"]
 	path = base/src/perl-cross
 	url = https://github.com/arsv/perl-cross
+[submodule "base/src/autoconf"]
+	path = base/src/autoconf
+	url = https://https.git.savannah.gnu.org/git/autoconf.git
+[submodule "base/src/automake"]
+	path = base/src/automake
+	url = https://https.git.savannah.gnu.org/git/automake.git
+[submodule "base/src/slibtool"]
+	path = base/src/slibtool
+	url = https://git.foss21.org/slibtool
+[submodule "base/src/nasm"]
+	path = base/src/nasm
+	url = https://github.com/netwide-assembler/nasm
+[submodule "base/src/git"]
+	path = base/src/git
+	url = https://github.com/git/git
+[submodule "base/src/libz"]
+	path = base/src/libz
+	url = https://gitlab.com/sortix/libz

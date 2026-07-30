@@ -541,14 +541,123 @@ CFLAGS="$CFLAGS -D_GNU_SOURCE" ./configure \
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# TODO: Build and install autoconf
+# Build and install autoconf
+# FIXME: Point to /bin/perl for the interpreter instead of the host system's
+#        path. ~ahill
+mkdir -p $DIR_BUILD/build-autoconf
+cd $DIR_BUILD/build-autoconf
+# NOTE: Since there is no configure script, the project needs to be
+#       bootstrapped, which requires a mutable source tree to accomplish. ~ahill
+cp -r $DIR_SRC/autoconf/. .
+./bootstrap
+./configure \
+    --build=$(./config.guess) \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# TODO: Build and install automake
+# Build and install automake
+# FIXME: Point to /bin/perl for the interpreter instead of the host system's
+#        path. ~ahill
+mkdir -p $DIR_BUILD/build-automake
+cd $DIR_BUILD/build-automake
+# NOTE: Since there is no configure script, the project needs to be
+#       bootstrapped, which requires a mutable source tree to accomplish. ~ahill
+cp -r $DIR_SRC/automake/. .
+./bootstrap
+./configure \
+    --build=$(./config.guess) \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# TODO: Build and install libtool
-# TODO: Would slibtool be a better fit? ~ahill
+# Build and install slibtool
+mkdir -p $DIR_BUILD/build-slibtool
+cd $DIR_BUILD/build-slibtool
+# NOTE: This isn't using autoconf/automake, so I'm not sure what the default
+#       values of the variables are. Might as well define everything to be sure.
+#       ~ahill
+$DIR_SRC/slibtool/configure \
+    --all-static \
+    --bindir=/bin \
+    --build=$(cc -dumpmachine) \
+    --docdir=/share/doc \
+    --exec-prefix="" \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libdir=/lib \
+    --libexecdir=/lib \
+    --localedir=/share/locale \
+    --mandir=/share/man \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --sbindir=/bin \
+    --sharedstatedir=/etc \
+    --sysconfdir=/etc \
+    --sysroot="$DIR_MAPLE"
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# TODO: Build and install git
+# Build and install Sortix libz (Not zlib!)
+mkdir -p $DIR_BUILD/build-libz
+cd $DIR_BUILD/build-libz
+$DIR_SRC/libz/configure \
+    --build=$(cc -dumpmachine) \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --prefix="" \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+
+# Build and install git
+mkdir -p $DIR_BUILD/build-git
+cd $DIR_BUILD/build-git
+# NOTE: There's no way to configure git outside of the Makefile, so I'm copying
+#       the source tree here. ~ahill
+cp -r $DIR_SRC/git/. .
+# NOTE: Tools like AR, CC, LD, OBJCOPY, and STRIP are manually passed to the
+#       Makefile because they are assigned with "=" instead of "?=". ~ahill
+make -O -j $JOBS install \
+    gitexecdir=lib/git-core \
+    prefix="" \
+    AR="$AR" \
+    CC="$CC" \
+    DESTDIR="$DIR_MAPLE" \
+    HOST_CPU=$(echo $TARGET | cut -d"-" -f1) \
+    LD="$LD" \
+    NO_CURL=YesPlease \
+    NO_EXPAT=YesPlease \
+    NO_GETTEXT=YesPlease \
+    NO_GITWEB=YesPlease \
+    NO_ICONV=YesPlease \
+    NO_OPENSSL=YesPlease \
+    NO_PERL=YesPlease \
+    NO_PYTHON=YesPlease \
+    NO_REGEX=NeedsStartEnd \
+    NO_RUST=YesPlease \
+    NO_TCLTK=YesPlease \
+    OBJCOPY="$OBJCOPY" \
+    STRIP="$STRIP"
 
 # Build and install MPIR
 mkdir -p $DIR_BUILD/build-mpir
@@ -692,7 +801,32 @@ cp -r $DIR_SRC/binutils-gdb/. .
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# TODO: Build and install (nasm? yasm?)
+# Build and install nasm
+mkdir -p $DIR_BUILD/build-nasm
+cd $DIR_BUILD/build-nasm
+# NOTE: This isn't using autoconf/automake, so I'm not sure what the default
+#       values of the variables are. Might as well define everything to be sure.
+#       ~ahill
+cp -r $DIR_SRC/nasm/. .
+./autogen.sh
+./configure \
+    --build=$(autoconf/helpers/config.guess) \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+# NOTE: make install is broken because it attempts to install the man pages, but
+#       the man pages don't exist, and xmlto isn't around to generate them from
+#       the source. ~ahill
+cp nasm $DIR_MAPLE/bin/
+cp ndisasm $DIR_MAPLE/bin/
 
 # Build and install gcc
 # FIXME: Why does this segfault? ~ahill
