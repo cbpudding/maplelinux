@@ -91,6 +91,7 @@ cd build-within-a-build
     --disable-libstdcxx \
     --disable-multilib \
     --disable-nls \
+    --disable-shared \
     --disable-threads \
     --enable-default-pie \
     --enable-default-ssp \
@@ -515,7 +516,7 @@ cd $DIR_BUILD/build-perl
 cp -r $DIR_SRC/perl/. .
 # NOTE: Perl makes some crazy assumptions about the system. Who would ever want
 #       to put header files under /usr/include? /s ~ahill
-patch -p1 < $SRC_PATCH/perl-maple.patch
+patch -p1 < $DIR_PATCH/perl-maple.patch
 cp -r $DIR_SRC/perl-cross/. .
 # TODO: Is it necessary to put the full Perl version in the archlib/privlib path
 #       if the system is built as a single artifact? ~ahill
@@ -618,14 +619,11 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 mkdir -p $DIR_BUILD/build-libz
 cd $DIR_BUILD/build-libz
 $DIR_SRC/libz/configure \
-    --build=$(cc -dumpmachine) \
-    --host=$TARGET \
+    --eprefix="" \
     --includedir=/share/include \
-    --libexecdir=/lib \
-    --localstatedir=/etc \
+    --libdir=/lib \
     --prefix="" \
-    --sbindir=/bin \
-    --sharedstatedir=/etc
+    --sharedlibdir=/lib
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
@@ -829,7 +827,6 @@ cp nasm $DIR_MAPLE/bin/
 cp ndisasm $DIR_MAPLE/bin/
 
 # Build and install gcc
-# FIXME: Why does this segfault? ~ahill
 mkdir -p $DIR_BUILD/build-gcc
 cd $DIR_BUILD/build-gcc
 # NOTE: Technically, gcc supports an out-of-tree build, but GCC doesn't conform
@@ -863,6 +860,7 @@ LDFLAGS_FOR_TARGET="-L$(pwd)/$TARGET/libgcc" ../configure \
     --enable-default-pie \
     --enable-default-ssp \
     --enable-languages=c,c++ \
+    --enable-shared \
     --enable-year2038 \
     --host=$TARGET \
     --includedir=/share/include \
@@ -875,7 +873,8 @@ LDFLAGS_FOR_TARGET="-L$(pwd)/$TARGET/libgcc" ../configure \
     --target=$TARGET \
     --with-build-sysroot=$DIR_MAPLE \
     --with-gcc-major-version-only \
-    --with-native-system-header-dir=/share/include
+    --with-native-system-header-dir=/share/include \
+    --with-sysroot=/
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 ln -s gcc $DIR_MAPLE/bin/cc
