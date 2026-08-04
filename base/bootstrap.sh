@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 # Define the build environment
-export DIR_BASE=$(pwd)
+export DIR_BASE=$(realpath $(dirname $0))
 export DIR_BUILD=$DIR_BASE/build
 export DIR_MAPLE=$DIR_BASE/maple
 export DIR_PATCH=$DIR_BASE/patch
@@ -543,15 +543,15 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
 # Build and install autoconf
-# FIXME: Point to /bin/perl for the interpreter instead of the host system's
-#        path. ~ahill
 mkdir -p $DIR_BUILD/build-autoconf
 cd $DIR_BUILD/build-autoconf
 # NOTE: Since there is no configure script, the project needs to be
 #       bootstrapped, which requires a mutable source tree to accomplish. ~ahill
 cp -r $DIR_SRC/autoconf/. .
 ./bootstrap
-./configure \
+# NOTE: PERL is manually set here so autoconf knows where to look on Maple Linux
+#       and *not* the build system. ~ahill
+PERL="/bin/perl" ./configure \
     --build=$(./config.guess) \
     --host=$TARGET \
     --includedir=/share/include \
@@ -574,7 +574,9 @@ cd $DIR_BUILD/build-automake
 #       bootstrapped, which requires a mutable source tree to accomplish. ~ahill
 cp -r $DIR_SRC/automake/. .
 ./bootstrap
-./configure \
+# NOTE: PERL is manually set here so automake knows where to look on Maple Linux
+#       and *not* the build system. ~ahill
+PERL="/bin/perl" ./configure \
     --build=$(./config.guess) \
     --host=$TARGET \
     --includedir=/share/include \
@@ -800,6 +802,7 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
 # Build and install nasm
+# TODO: Replace nasm with yasm, since it's not compatible like I thought. ~ahill
 mkdir -p $DIR_BUILD/build-nasm
 cd $DIR_BUILD/build-nasm
 # NOTE: This isn't using autoconf/automake, so I'm not sure what the default
@@ -847,6 +850,9 @@ cd build-within-a-build
 # NOTE: LDFLAGS_FOR_TARGET is specified here since the libgcc in $DIR_MAPLE is
 #       insufficient for C++ to function properly. This forces it to link with
 #       the new libgcc it just built. ~ahill
+# NOTE: I *may* have discovered a gcc bug, where building with --libexecdir=/lib
+#       causes make_relative_prefix to return NULL, crashing the program later,
+#       while building with --libexecdir=/lib/ works. WHY?!? ~ahill
 LDFLAGS_FOR_TARGET="-L$(pwd)/$TARGET/libgcc" ../configure \
     --build=$(../config.guess) \
     --disable-libatomic \
@@ -864,10 +870,10 @@ LDFLAGS_FOR_TARGET="-L$(pwd)/$TARGET/libgcc" ../configure \
     --enable-year2038 \
     --host=$TARGET \
     --includedir=/share/include \
-    --libexecdir=/lib \
+    --libexecdir=/lib/ \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --target=$TARGET \
@@ -879,4 +885,8 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 ln -s gcc $DIR_MAPLE/bin/cc
 
-# TODO: Prepare the image
+# Prepare the image
+cd $DIR_MAPLE
+rm -rf $DIR_MAPLE/maple
+# TODO: How should the sysroot be configured here?
+tar cJf ../base-$(date +%Y%m%d%H%M).txz *
