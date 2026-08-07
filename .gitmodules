@@ -52,18 +52,12 @@
 [submodule "base/src/bc"]
 	path = base/src/bc
 	url = https://github.com/gavinhoward/bc
-[submodule "base/src/heirloom-devtools"]
-	path = base/src/heirloom-devtools
-	url = https://github.com/heirloom-project/heirloom-devtools
 [submodule "base/src/mpfr"]
 	path = base/src/mpfr
 	url = https://gitlab.inria.fr/mpfr/mpfr
 [submodule "base/src/mpc"]
 	path = base/src/mpc
 	url = https://gitlab.inria.fr/mpc/mpc
-[submodule "base/src/mpir"]
-	path = base/src/mpir
-	url = https://github.com/BrianGladman/mpir
 [submodule "base/src/heirloom-toolchest"]
 	path = base/src/heirloom-toolchest
 	url = https://github.com/heirloom-project/heirloom-toolchest
@@ -82,12 +76,15 @@
 [submodule "base/src/slibtool"]
 	path = base/src/slibtool
 	url = https://git.foss21.org/slibtool
-[submodule "base/src/nasm"]
-	path = base/src/nasm
-	url = https://github.com/netwide-assembler/nasm
 [submodule "base/src/git"]
 	path = base/src/git
 	url = https://github.com/git/git
 [submodule "base/src/libz"]
 	path = base/src/libz
 	url = https://gitlab.com/sortix/libz
+[submodule "base/src/flex"]
+	path = base/src/flex
+	url = https://github.com/westes/flex
+[submodule "base/src/gmp"]
+	path = base/src/gmp
+	url = https://github.com/gmp-mirror/gmp-6.3

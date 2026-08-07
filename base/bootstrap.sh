@@ -2,18 +2,26 @@
 
 # Define the build environment
 export DIR_BASE=$(realpath $(dirname $0))
+# NOTE: This is to make it easier to replicate the environment for
+#       troubleshooting purposes. Under normal circumstances, this line is never
+#       run, but I can ignore the pound sign when I copy the text so I can
+#       simply paste it into the console. Might benefit others besides myself
+#       too. :) ~ahill
+#export DIR_BASE=$(pwd)
 export DIR_BUILD=$DIR_BASE/build
 export DIR_MAPLE=$DIR_BASE/maple
 export DIR_PATCH=$DIR_BASE/patch
 export DIR_SRC=$DIR_BASE/src
 export DIR_TOOLS=$DIR_MAPLE/maple/tools
 export JOBS=${JOBS:-$(nproc)}
-export LEX=$(which lex || which flex)
+export LANG=C
+export LC_ALL=C
+export LEX=$(which flex)
 export TARGET=${TARGET:-x86_64-maple-linux-musl}
-export YACC=$(which byacc || which bison || which yacc)
+export YACC=$(which byacc || which bison)
 
-[ -z "$LEX" ] && (echo "lex is not installed. Please install lex or a compatible program and try again."; exit 1)
-[ -z "$YACC" ] && (echo "yacc is not installed. Please install yacc or a compatible program and try again."; exit 1)
+[ -z "$LEX" ] && (echo "flex is not installed. Please install flex or a compatible program and try again."; exit 1)
+[ -z "$YACC" ] && (echo "byacc is not installed. Please install byacc or a compatible program and try again."; exit 1)
 
 # Prepare a clean build environment
 [ -d $DIR_BUILD ] && rm -rf $DIR_BUILD
@@ -60,7 +68,13 @@ $DIR_SRC/binutils-gdb/configure \
     --sharedstatedir=$DIR_TOOLS/etc \
     --target=$TARGET \
     --with-build-sysroot=$DIR_MAPLE
-make -O -j $JOBS
+# NOTE: binutils requires texinfo to build documentation, with no way to disable
+#       documentation from the configure script. As a workaround, MAKEINFO is
+#       set to "true" so it runs the true command in its place, effectively
+#       disabling documentation. At some point, this approach will be
+#       re-considered, but it is not necessary for a successful bootstrap.
+#       ~ahill
+make -O -j $JOBS MAKEINFO=true
 make -O -j $JOBS install
 
 # Build the cross-compiler
@@ -107,7 +121,7 @@ cd build-within-a-build
     --sharedstatedir=$DIR_TOOLS/etc \
     --target=$TARGET \
     --with-gcc-major-version-only \
-    --with-gmp=$DIR_SRC/mpir \
+    --with-gmp=$DIR_SRC/gmp \
     --with-mpc=$DIR_SRC/mpc \
     --with-mpfr=$DIR_SRC/mpfr \
     --with-native-system-header-dir=/share/include \
@@ -162,7 +176,7 @@ mkdir -p $DIR_BUILD/build-toybox
 cd $DIR_BUILD/build-toybox
 # NOTE: I cannot figure out how the heck to build toybox outside of the source
 #       tree, so this will have to do for now. ~ahill
-cp -r $DIR_SRC/toybox/* .
+cp -r $DIR_SRC/toybox/. .
 # NOTE: Toybox sees $TARGET and decides to append a suffix to the main program,
 #       which is not what I'm looking for. Yes, it's being cross-compiled, but
 #       the system that's running it doesn't need to be reminded of its own
@@ -205,7 +219,7 @@ cd $DIR_BUILD/build-hummingbird
 #       source code needs to be patched to adapt to Maple Linux's unique
 #       filesystem hierarchy, and everything under $DIR_SRC should be immutable.
 #       ~ahill
-cp -r $DIR_SRC/hummingbird/* .
+cp -r $DIR_SRC/hummingbird/. .
 # NOTE: Hummingbird is an incredibly simple project, and as such, it makes a lot
 #       of assumptions about the environment it's going to run in. Thankfully,
 #       since Hummingbird is so simple, it's easy to make a patch that adapts it
@@ -230,7 +244,7 @@ mkdir -p $DIR_BUILD/build-skalibs
 cd $DIR_BUILD/build-skalibs
 # NOTE: Skalibs does not support out of tree builds, so we copy the tree here to
 #       keep $DIR_SRC immutable. ~ahill
-cp -r $DIR_SRC/skalibs/* .
+cp -r $DIR_SRC/skalibs/. .
 # TODO: Does Maple Linux need --enable-pkgconfig? ~ahill
 ./configure \
     --disable-shared \
@@ -250,7 +264,7 @@ mkdir -p $DIR_BUILD/build-mdevd
 cd $DIR_BUILD/build-mdevd
 # NOTE: mdevd does not support out of tree builds, so we copy the tree here to
 #       keep $DIR_SRC immutable. ~ahill
-cp -r $DIR_SRC/mdevd/* .
+cp -r $DIR_SRC/mdevd/. .
 # TODO: Does Maple Linux need --enable-pkgconfig? ~ahill
 ./configure \
     --enable-static-libc \
@@ -288,7 +302,7 @@ cd $DIR_BUILD/build-ndhc
 # NOTE: Ragel will *sometimes* get invoked because the timestamp of the parser
 #       is newer than the C code it generated. Telling cp to preserve timestamps
 #       fixes this behavior. ~ahill
-cp -a $DIR_SRC/ndhc/* .
+cp -a $DIR_SRC/ndhc/. .
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -j $JOBS
 cp ndhc $DIR_MAPLE/bin/
 mkdir -p $DIR_MAPLE/share/man/man8
@@ -298,7 +312,7 @@ cp ndhc.8 $DIR_MAPLE/share/man/man8/
 mkdir -p $DIR_BUILD/build-chrony
 cd $DIR_BUILD/build-chrony
 # NOTE: Out of tree builds for chrony are broken. ~ahill
-cp -r $DIR_SRC/chrony/* .
+cp -r $DIR_SRC/chrony/. .
 # TODO: Create an actual user for chrony{c,d} and specify --with{,-chronyc}-user
 #       ~ahill
 # NOTE: There does not appear to be an option to specify a sysroot or static
@@ -353,15 +367,22 @@ echo "#!/bin/sh" | cat - $DIR_SRC/heirloom-toolchest/diff3/diff3.sh \
     | sed "s|@DEFBIN@|/bin|;s|@DEFLIB@|/lib|;s|@SV3BIN@:||" \
     > $DIR_MAPLE/bin/diff3
 chmod +x $DIR_MAPLE/bin/diff3
+$YACC -o expr.c $DIR_SRC/heirloom-toolchest/expr/expr.y
+$CC -Ilibcommon -static expr.c libcommon/libcommon.a -o $DIR_MAPLE/bin/expr
+cp $DIR_SRC/heirloom-toolchest/expr/expr.1 $DIR_MAPLE/share/man/man1/
 $CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/sdiff/sdiff.c \
     libcommon/libcommon.a -o $DIR_MAPLE/bin/sdiff
 cp $DIR_SRC/heirloom-toolchest/sdiff/sdiff.1 $DIR_MAPLE/share/man/man1/
+$CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/tr/tr.c \
+    libcommon/libcommon.a -o $DIR_MAPLE/bin/tr
+cp $DIR_SRC/heirloom-toolchest/tr/tr.1 $DIR_MAPLE/share/man/man1/
+# TODO: What exactly is man1b for? ~ahill
 
 # Build and install xz
 mkdir -p $DIR_BUILD/build-xz
 cd $DIR_BUILD/build-xz
 # NOTE: Curse you auto-generating build scripts! ~ahill
-cp -r $DIR_SRC/xz/* .
+cp -r $DIR_SRC/xz/. .
 ./autogen.sh --no-po4a
 # TODO: Is sysroot even required if the compiler is told to use the sysroot
 #       anyways? ~ahill
@@ -384,7 +405,7 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 mkdir -p $DIR_BUILD/build-awk
 cd $DIR_BUILD/build-awk
 # NOTE: I'm sensing a pattern here, but there's no out of tree build. ~ahill
-cp -r $DIR_SRC/awk/* .
+cp -r $DIR_SRC/awk/. .
 # NOTE: Awk's Makefile makes a few assumptions about the build environment, so I
 #       told it to use the actual cross-compiler and byacc in place of bison.
 #       Outside of the selection of tools, CFLAGS is shared between CC and
@@ -426,7 +447,7 @@ cd $DIR_BUILD/build-m4
 #       configure script was never committed. Therefore, the configure script
 #       must be created to build the software. The source tree is copied here to
 #       keep DIR_SRC immutable. ~ahill
-cp -r $DIR_SRC/m4/* .
+cp -r $DIR_SRC/m4/. .
 # NOTE: The bootstrap script will attempt to pull the sources from the network,
 #       which is something I want to avoid. A pure bootstrap doesn't need to
 #       reach out to *any* server for *anything*. ~ahill
@@ -451,7 +472,7 @@ mkdir -p $DIR_BUILD/build-make
 cd $DIR_BUILD/build-make
 # NOTE: Like a lot of GNU software, the configure script needs to be
 #       bootstrapped. ~ahill
-cp -r $DIR_SRC/make/* .
+cp -r $DIR_SRC/make/. .
 ./bootstrap --gen --gnulib-srcdir=$DIR_SRC/gnulib --no-git --skip-po
 patch -p1 < $DIR_PATCH/make-maple.patch
 # NOTE: Configure doesn't give static and sysroot as options! ~ahill
@@ -483,30 +504,32 @@ CFLAGS="-static" $DIR_SRC/bc/configure \
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install lex
-mkdir -p $DIR_BUILD/build-lex
-cd $DIR_BUILD/build-lex
-# NOTE: This is old enough that I'll be impressed if it works. Who cares if it
-#       doesn't support out of tree builds, it builds! ~ahill
-cp -r $DIR_SRC/heirloom-devtools/lex/* .
-# NOTE: For some reason, the Makefile doesn't do this part. ~ahill
-$YACC parser.y -o parser.c
-# NOTE: LIBDIR *must* be defined here because it's compiling the path into the
-#       executable. ~ahill
-CFLAGS="-static --sysroot=$DIR_MAPLE" \
-    make -f Makefile.mk -O -j $JOBS LIBDIR=/share
-# NOTE: make install wants to do some strange things so I'm installing this
-#       manually. ~ahill
-cp lex $DIR_MAPLE/bin/
-mkdir -p $DIR_MAPLE/share/lex
-cp nceucform $DIR_MAPLE/share/lex/
-cp ncform $DIR_MAPLE/share/lex/
-cp nrform $DIR_MAPLE/share/lex/
-mkdir -p $DIR_MAPLE/share/man/man1
-cp lex.1 $DIR_MAPLE/share/man/man1/
-# FIXME: Is there a way to make this a shared library so the CDDL license does
-#        not accidentally conflict other licenses such as GPL? ~ahill
-#cp libl.a $DIR_MAPLE/lib/
+# Build and install flex
+mkdir $DIR_BUILD/build-flex
+cd $DIR_BUILD/build-flex
+# NOTE: Copying the source tree to the build folder since there's no configure
+#       script available. ~ahill
+cp -r $DIR_SRC/flex/. .
+# NOTE: Flex 2.6.4 is almost a decade old, and 2.6.5 hasn't been released yet.
+#       Since modern compilers don't like definitions without arguments, this
+#       commit is being backported from upstream. ~ahill
+patch -p1 < $DIR_PATCH/flex-malloc.patch
+./autogen.sh
+# TODO: Is libfl needed? ~ahill
+./configure \
+    --build=$(./build-aux/config.guess) \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc \
+    --with-sysroot="$DIR_MAPLE"
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 # Build and install Perl
 mkdir -p $DIR_BUILD/build-perl
@@ -659,45 +682,39 @@ make -O -j $JOBS install \
     OBJCOPY="$OBJCOPY" \
     STRIP="$STRIP"
 
-# Build and install MPIR
-mkdir -p $DIR_BUILD/build-mpir
-cd $DIR_BUILD/build-mpir
-# NOTE: Yet another repository that needs a configure script. ~ahill
-cp -r $DIR_SRC/mpir/* .
-./autogen.sh
-# NOTE: Some of the tests fail because they assume that a function without a
-#       return type returns an int, which causes an error. Something is probably
-#       passing -Werror, converting it from a warning into an error. Passing
-#       -Wno-implicit-int to remedy this. ~ahill
-# NOTE: Some tests include implicit functions, which cause errors. Passing
-#       -Wno-implicit-function-declaration to fix that as well. ~ahill
-# TODO: Is there a way to build MPIR without YASM? ~ahill
-CFLAGS="-Wno-implicit-function-declaration -Wno-implicit-int" ./configure \
+# Build and install GMP
+mkdir -p $DIR_BUILD/build-gmp
+cd $DIR_BUILD/build-gmp
+# NOTE: GMP needs to be bootstrapped, so the source tree is copied to the build
+#       directory to keep the "immutable source tree" rule. ~ahill
+cp -r $DIR_SRC/gmp/. .
+./.bootstrap
+# NOTE: GMP's tests are ancient and the assumptions it makes cause modern
+#       compilers to choke. Passing -std=gnu99 tells it to use historical
+#       behaviors for the C compiler rather than modern behaviors. ~ahill
+CFLAGS="-std=gnu99" ./configure \
     --build=$(./config.guess) \
     --disable-static \
-    --enable-gmpcompat \
     --host=$TARGET \
     --includedir=/share/include \
     --libexecdir=/lib \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc \
-    --with-sysroot=$DIR_MAPLE
+    --with-sysroot="$DIR_MAPLE"
 make -O -j $JOBS
-# NOTE: For some reason, the Makefile completely ignores includedir and decides
-#       to do its own thing instead. To prevent it from installing to /include,
-#       includeexecdir is passed to force the headers to be installed in the
-#       correct location. ~ahill
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE includeexecdir="/share/include"
+# NOTE: Silly GMP, $exec_prefix/include is not valid here. Use the normal
+#       include directory like a sane package. ~ahill
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includeexecdir=/share/include
 
 # Build and install MPFR
 mkdir -p $DIR_BUILD/build-mpfr
 cd $DIR_BUILD/build-mpfr
 # NOTE: Yet another repository that needs a configure script. ~ahill
-cp -r $DIR_SRC/mpfr/* .
+cp -r $DIR_SRC/mpfr/. .
 ./autogen.sh
 # FIXME: For some reason, libgcc doesn't have the necessary decimal float
 #        functions MPFR requires. Passing --disable-decimal-float for now, but
@@ -715,16 +732,16 @@ cp -r $DIR_SRC/mpfr/* .
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc \
-    --with-sysroot=$DIR_MAPLE
+    --with-sysroot="$DIR_MAPLE"
 make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 # Build and install MPC
 mkdir -p $DIR_BUILD/build-mpc
 cd $DIR_BUILD/build-mpc
 # NOTE: This repository doesn't contain a configure OR an autogen.sh script, so
 #       I'm doing this from scratch. ~ahill
-cp -r $DIR_SRC/mpc/* .
+cp -r $DIR_SRC/mpc/. .
 autoreconf -i
 ./configure \
     --build=$(./config.guess) \
@@ -738,9 +755,9 @@ autoreconf -i
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc \
-    --with-sysroot=$DIR_MAPLE
+    --with-sysroot="$DIR_MAPLE"
 make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 # Build and install libstdc++
 mkdir -p $DIR_BUILD/build-libstdc++
@@ -766,12 +783,13 @@ $DIR_SRC/gcc/libstdc++-v3/configure \
     --with-gcc-major-version-only \
     --with-gxx-include-dir=/maple/tools/$TARGET/include/c++/16
 make -O -j $(nproc)
-make -O -j $(nproc) install DESTDIR=$DIR_MAPLE
+make -O -j $(nproc) install DESTDIR="$DIR_MAPLE"
 
 # Clean libtool files since they are harmful for cross-compilation
 find $DIR_MAPLE/lib -type f -name "*.la" -delete
 
 # Build and install binutils
+# FIXME: How can I prevent binutils from making a /$TARGET folder? ~ahill
 mkdir -p $DIR_BUILD/build-binutils
 cd $DIR_BUILD/build-binutils
 # NOTE: binutils can handle out of tree builds, but there's apparently a
@@ -796,38 +814,10 @@ cp -r $DIR_SRC/binutils-gdb/. .
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --target=$TARGET \
-    --with-build-sysroot=$DIR_MAPLE \
+    --with-build-sysroot="$DIR_MAPLE" \
     --with-gcc-major-version-only
 make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
-
-# Build and install nasm
-# TODO: Replace nasm with yasm, since it's not compatible like I thought. ~ahill
-mkdir -p $DIR_BUILD/build-nasm
-cd $DIR_BUILD/build-nasm
-# NOTE: This isn't using autoconf/automake, so I'm not sure what the default
-#       values of the variables are. Might as well define everything to be sure.
-#       ~ahill
-cp -r $DIR_SRC/nasm/. .
-./autogen.sh
-./configure \
-    --build=$(autoconf/helpers/config.guess) \
-    --enable-year2038 \
-    --host=$TARGET \
-    --includedir=/share/include \
-    --libexecdir=/lib \
-    --localstatedir=/etc \
-    --oldincludedir=/share/include \
-    --prefix="" \
-    --runstatedir=/tmp \
-    --sbindir=/bin \
-    --sharedstatedir=/etc
-make -O -j $JOBS
-# NOTE: make install is broken because it attempts to install the man pages, but
-#       the man pages don't exist, and xmlto isn't around to generate them from
-#       the source. ~ahill
-cp nasm $DIR_MAPLE/bin/
-cp ndisasm $DIR_MAPLE/bin/
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 # Build and install gcc
 mkdir -p $DIR_BUILD/build-gcc
@@ -886,7 +876,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 ln -s gcc $DIR_MAPLE/bin/cc
 
 # Prepare the image
-cd $DIR_MAPLE
-rm -rf $DIR_MAPLE/maple
+#cd $DIR_MAPLE
+#rm -rf $DIR_MAPLE/maple
 # TODO: How should the sysroot be configured here?
-tar cJf ../base-$(date +%Y%m%d%H%M).txz *
+#tar cJf ../base-$(date +%Y%m%d%H%M).txz *

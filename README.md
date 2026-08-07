@@ -16,6 +16,15 @@ While it may sound too good to be true, that's because it is. Maple Linux does n
 - In order to achieve the "unified experience", the software included has been selected in advance so that effort can be focused on improving the system as a whole. This makes it far less generic and customizable, but offers a much more coherent and focused system overall. In addition, this makes it much more maintainable for a single developer such as myself.
 - Much of the software in the Linux ecosystem, including Linux itself, is released under a copyleft license. While the Maple Linux project attempts to provide an operating system that gives you as much freedom as possible, some software licenses impose conditions on redistribution and modification that Maple Linux must respect.
 
+## Status
+
+| Architecture | Base      |
+| ------------ | --------- |
+| ARM          | Planned   |
+| RISC-V       | Planned   |
+| SPARC        | Planned   |
+| x86_64       | Supported |
+
 ## Design
 
 ### Filesystem Hierarchy
