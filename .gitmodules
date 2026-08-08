@@ -88,3 +88,9 @@
 [submodule "base/src/gmp"]
 	path = base/src/gmp
 	url = https://github.com/gmp-mirror/gmp-6.3
+[submodule "base/src/fluid"]
+	path = base/src/fluid
+	url = https://github.com/goToMain/fluid
+[submodule "base/src/tomlc17"]
+	path = base/src/tomlc17
+	url = https://github.com/cktan/tomlc17
