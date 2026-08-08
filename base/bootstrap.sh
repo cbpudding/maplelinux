@@ -135,6 +135,12 @@ make -O -j $JOBS install
 #       for future builds to succeed. ~ahill
 ln -s $TARGET-gcc $DIR_TOOLS/bin/$TARGET-cc
 
+# Build a native copy of mapleconf for later use
+$CC -o "$DIR_TOOLS/mapleconf" \
+    -I $DIR_SRC/tomlc17/src \
+    $DIR_SRC/mapleconf/mapleconf.c \
+    $DIR_SRC/tomlc17/src/tomlc17.c
+
 # Re-define the build environment to use the new tools
 export AR="$TARGET-ar"
 export AS="$TARGET-as"
@@ -875,8 +881,36 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 ln -s gcc $DIR_MAPLE/bin/cc
 
+# Build and install tomlc17
+mkdir -p $DIR_BUILD/build-tomlc17
+cd $DIR_BUILD/build-tomlc17
+# NOTE: The source tree needs to be copied to preserve source immutability.
+#       ~ahill
+cp -r $DIR_SRC/tomlc17/. .
+# NOTE: We don't need all of the library, and bootstrapping the other parts of
+#       the library gets messy with the bootstrap toolchain. ~ahill
+make -C src -O -j $JOBS
+cp src/libtomlc17.a $DIR_MAPLE/lib/
+cp src/tomlc17.h $DIR_MAPLE/share/include/
+cp src/tomlcpp.hpp $DIR_MAPLE/share/include/
+
+# Build and install fluid
+mkdir -p $DIR_BUILD/build-fluid
+cd $DIR_BUILD/build-fluid
+# TODO: Patch fluid to use a Makefile instead of CMake ~ahill
+# TODO: Patch fluid to use TOML instead of YAML ~ahill
+
+# Build and install mapleconf
+mkdir -p $DIR_BUILD/build-mapleconf
+cd $DIR_BUILD/build-mapleconf
+# TODO: Does this even need to have a build directory? ~ahill
+$CC -static -o $DIR_MAPLE/bin/mapleconf $DIR_SRC/mapleconf/mapleconf.c -ltomlc17
+
 # Prepare the image
-#cd $DIR_MAPLE
+cd $DIR_MAPLE
+$DIR_TOOLS/mapleconf \
+    -c "$DIR_BASE/maple.toml" \
+    -r "$DIR_MAPLE/maple" \
+    -t "$DIR_MAPLE/share/mapleconf"
 #rm -rf $DIR_MAPLE/maple
-# TODO: How should the sysroot be configured here?
 #tar cJf ../base-$(date +%Y%m%d%H%M).txz *
