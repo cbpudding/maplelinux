@@ -80,7 +80,7 @@ void render_file(lua_State *state, char *template_path, char *path) {
     lua_getfield(state, -1, "Template");
     lua_getfield(state, -1, "parse");
     lua_pushvalue(state, -2);
-    lua_pushstring(state, template);
+    lua_pushlstring(state, template, length);
     if(lua_pcall(state, 2, 1, 0) != LUA_OK) {
         fprintf(stderr, "%s: parse: %s\n", path, lua_tostring(state, -1));
         free(template);
@@ -147,7 +147,7 @@ void render_directory(lua_State *state, char *template_path, char *root_path) {
         }
 
         if(S_ISDIR(status.st_mode)) {
-            if(!access(fullpath_root, F_OK)) {
+            if(access(fullpath_root, F_OK)) {
                 mkdir(fullpath_root, 0755);
             }
 
