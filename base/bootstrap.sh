@@ -13,6 +13,8 @@ export DIR_MAPLE=$DIR_BASE/maple
 export DIR_PATCH=$DIR_BASE/patch
 export DIR_SRC=$DIR_BASE/src
 export DIR_TOOLS=$DIR_MAPLE/maple/tools
+
+export CC=${CC:-cc}
 export JOBS=${JOBS:-$(nproc)}
 export LANG=C
 export LC_ALL=C
@@ -75,7 +77,7 @@ $DIR_SRC/binutils-gdb/configure \
 #       re-considered, but it is not necessary for a successful bootstrap.
 #       ~ahill
 make -O -j $JOBS MAKEINFO=true
-make -O -j $JOBS install
+make -O -j $JOBS install MAKEINFO=true
 
 # Build the cross-compiler
 mkdir -p $DIR_BUILD/cross-gcc
@@ -136,6 +138,8 @@ make -O -j $JOBS install
 ln -s $TARGET-gcc $DIR_TOOLS/bin/$TARGET-cc
 
 # Build a native copy of mapleconf for later use
+# FIXME: How to prevent issues with runtime dependencies such as lua-cjson
+#        during the bootstrap? ~ahill
 $CC -o "$DIR_TOOLS/mapleconf" \
     -I $DIR_SRC/tomlc17/src \
     $DIR_SRC/mapleconf/mapleconf.c \
@@ -646,6 +650,7 @@ $DIR_SRC/slibtool/configure \
     --sysroot="$DIR_MAPLE"
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+ln -s slibtoolize $DIR_MAPLE/bin/libtoolize
 
 # Build and install Sortix libz (Not zlib!)
 mkdir -p $DIR_BUILD/build-libz
@@ -963,9 +968,9 @@ cp $DIR_BASE/maple.toml $DIR_MAPLE/etc/
 
 # Prepare the image
 cd $DIR_MAPLE
-$DIR_TOOLS/mapleconf \
-    -c "$DIR_BASE/maple.toml" \
-    -r "$DIR_MAPLE/maple" \
-    -t "$DIR_MAPLE/share/mapleconf"
+#$DIR_TOOLS/mapleconf \
+#    -c "$DIR_BASE/maple.toml" \
+#    -r "$DIR_MAPLE" \
+#    -t "$DIR_MAPLE/share/mapleconf"
 #rm -rf $DIR_MAPLE/maple
 #tar cJf ../base-$(date +%Y%m%d%H%M).txz *
