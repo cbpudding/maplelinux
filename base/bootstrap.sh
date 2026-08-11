@@ -139,7 +139,8 @@ ln -s $TARGET-gcc $DIR_TOOLS/bin/$TARGET-cc
 $CC -o "$DIR_TOOLS/mapleconf" \
     -I $DIR_SRC/tomlc17/src \
     $DIR_SRC/mapleconf/mapleconf.c \
-    $DIR_SRC/tomlc17/src/tomlc17.c
+    $DIR_SRC/tomlc17/src/tomlc17.c \
+    -llua
 
 # Re-define the build environment to use the new tools
 export AR="$TARGET-ar"
@@ -894,17 +895,71 @@ cp src/libtomlc17.a $DIR_MAPLE/lib/
 cp src/tomlc17.h $DIR_MAPLE/share/include/
 cp src/tomlcpp.hpp $DIR_MAPLE/share/include/
 
-# Build and install fluid
-mkdir -p $DIR_BUILD/build-fluid
-cd $DIR_BUILD/build-fluid
-# TODO: Patch fluid to use a Makefile instead of CMake ~ahill
-# TODO: Patch fluid to use TOML instead of YAML ~ahill
+# Build and install Lua
+mkdir -p $DIR_BUILD/build-lua
+cd $DIR_BUILD/build-lua
+# NOTE: Lua is an old-school Makefile that doesn't support out of tree builds,
+#       so the source code is copied here to keep the source code immutable.
+#       ~ahill
+cp -r $DIR_SRC/lua/. .
+# NOTE: LUA_ROOT defaults to /usr/local, which is not what I want. ~ahill
+sed -i "/#define LUA_ROOT/s|/usr/local/|/|" luaconf.h
+# NOTE: Lua ignores the CC environment variable, so it's declared here. ~ahill
+# NOTE: Lua objects are built with -fPIC so it can be linked into a shared
+#       library later on. ~ahill
+# NOTE: LUA_USE_DLOPEN and LUA_USE_POSIX are defined individually instead of
+#       using LUA_USE_LINUX, since that will also try to link with readline in
+#       some cases. If readline becomes a requirement for something else, I may
+#       change this to make Lua nicer to use overall. ~ahill
+make -O -j $JOBS CC=$CC CFLAGS="-DLUA_USE_DLOPEN -DLUA_USE_POSIX -fPIC"
+# NOTE: Here's an ugly hack to build a shared library. ~ahill
+$CC -shared -fPIC -o $DIR_MAPLE/lib/liblua.so *.o -lm
+# NOTE: Lua's Makefile does not have an install target. Is this correct? ~ahill
+cp lauxlib.h $DIR_MAPLE/share/include/
+cp lua.h $DIR_MAPLE/share/include/
+cp luaconf.h $DIR_MAPLE/share/include/
+cp lualib.h $DIR_MAPLE/share/include/
+cp liblua.a $DIR_MAPLE/lib/
+cp lua $DIR_MAPLE/bin/
+# NOTE: For some reason, git doesn't have lua.hpp, so I made my own. ~ahill
+cp $DIR_PATCH/lua.hpp $DIR_MAPLE/share/include/
+# TODO: Is luac required? If so, how is it built? ~ahill
+
+# Build and install LuaDate
+mkdir -p $DIR_BUILD/build-luadate
+cd $DIR_BUILD/build-luadate
+# NOTE: There's no real install here. Just copy the file. ~ahill
+mkdir -p $DIR_MAPLE/share/lua/5.5
+cp $DIR_SRC/luadate/src/date.lua $DIR_MAPLE/share/lua/5.5/
+
+# Build and install Lua CJSON
+mkdir -p $DIR_BUILD/build-lua-cjson
+cd $DIR_BUILD/build-lua-cjson
+# NOTE: This uses a Makefile that manipulates the source tree. Copying the
+#       source tree to preserve immutability of DIR_SRC. ~ahill
+cp -r $DIR_SRC/lua-cjson/. .
+make -O -j $JOBS
+# NOTE: Just copying the library because it's easier than setting all of the
+#       Makefile variables properly. ~ahill
+mkdir -p $DIR_MAPLE/lib/lua/5.5
+cp cjson.so $DIR_MAPLE/lib/lua/5.5/
+
+# Build and install liquid.lua
+mkdir -p $DIR_BUILD/build-liquid-lua
+cd $DIR_BUILD/build-liquid-lua
+# NOTE: There's no real install here. Just copy the file. ~ahill
+mkdir -p $DIR_MAPLE/share/lua/5.5
+cp $DIR_SRC/liquid-lua/lib/liquid.lua $DIR_MAPLE/share/lua/5.5/
 
 # Build and install mapleconf
 mkdir -p $DIR_BUILD/build-mapleconf
 cd $DIR_BUILD/build-mapleconf
 # TODO: Does this even need to have a build directory? ~ahill
-$CC -static -o $DIR_MAPLE/bin/mapleconf $DIR_SRC/mapleconf/mapleconf.c -ltomlc17
+$CC -o $DIR_MAPLE/bin/mapleconf \
+    $DIR_SRC/mapleconf/mapleconf.c \
+    -llua -ltomlc17
+mkdir -p $DIR_MAPLE/share/mapleconf
+cp $DIR_BASE/maple.toml $DIR_MAPLE/etc/
 
 # Prepare the image
 cd $DIR_MAPLE
