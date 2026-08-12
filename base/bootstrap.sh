@@ -1,6 +1,15 @@
 #!/bin/sh -e
 
-# Define the build environment
+# NOTE: Keep track of where we are for troubleshooting purposes ~ahill
+STEP() {
+    if [ -t 1 ]; then
+        printf "\e[1;7m==> %s\n\e[0m" "$1"
+    else
+        echo "==> $1"
+    fi
+}
+
+STEP "Define the build environment"
 export DIR_BASE=$(realpath $(dirname $0))
 # NOTE: This is to make it easier to replicate the environment for
 #       troubleshooting purposes. Under normal circumstances, this line is never
@@ -25,7 +34,8 @@ export YACC=$(which byacc || which bison)
 [ -z "$LEX" ] && (echo "flex is not installed. Please install flex or a compatible program and try again."; exit 1)
 [ -z "$YACC" ] && (echo "byacc is not installed. Please install byacc or a compatible program and try again."; exit 1)
 
-# Prepare a clean build environment
+
+STEP "Prepare a clean build environment"
 [ -d $DIR_BUILD ] && rm -rf $DIR_BUILD
 mkdir -p $DIR_BUILD
 
@@ -35,7 +45,8 @@ mkdir -p $DIR_MAPLE
 [ -d $DIR_TOOLS ] && rm -rf $DIR_TOOLS
 mkdir -p $DIR_TOOLS
 
-# Create the root hierarchy
+
+STEP "Create the root hierarchy"
 mkdir -p $DIR_MAPLE/bin           # Executables (User-Executable Code)
 mkdir -p $DIR_MAPLE/boot          # Boot Partition
 mkdir -p $DIR_MAPLE/cache         # Retained Data
@@ -49,7 +60,8 @@ mkdir -p $DIR_MAPLE/share/include # C Header Files
 mkdir -p $DIR_MAPLE/sys           # Linux Kernel Objects
 mkdir -p $DIR_MAPLE/tmp           # Temporary Data
 
-# Build the cross-linker/assembler
+
+STEP "Build the cross-linker/assembler"
 mkdir -p $DIR_BUILD/cross-binutils
 cd $DIR_BUILD/cross-binutils
 $DIR_SRC/binutils-gdb/configure \
@@ -79,7 +91,8 @@ $DIR_SRC/binutils-gdb/configure \
 make -O -j $JOBS MAKEINFO=true
 make -O -j $JOBS install MAKEINFO=true
 
-# Build the cross-compiler
+
+STEP "Build the cross-compiler"
 mkdir -p $DIR_BUILD/cross-gcc
 cd $DIR_BUILD/cross-gcc
 # NOTE: Technically, gcc supports an out-of-tree build, but GCC doesn't conform
@@ -137,7 +150,8 @@ make -O -j $JOBS install
 #       for future builds to succeed. ~ahill
 ln -s $TARGET-gcc $DIR_TOOLS/bin/$TARGET-cc
 
-# Build a native copy of mapleconf for later use
+
+STEP "Build a native copy of mapleconf for later use"
 # FIXME: How to prevent issues with runtime dependencies such as lua-cjson
 #        during the bootstrap? ~ahill
 $CC -o "$DIR_TOOLS/mapleconf" \
@@ -146,7 +160,8 @@ $CC -o "$DIR_TOOLS/mapleconf" \
     $DIR_SRC/tomlc17/src/tomlc17.c \
     -llua
 
-# Re-define the build environment to use the new tools
+
+STEP "Re-define the build environment to use the new tools"
 export AR="$TARGET-ar"
 export AS="$TARGET-as"
 export CC="$TARGET-gcc"
@@ -160,14 +175,16 @@ export PATH="$DIR_TOOLS/bin:$PATH"
 export RANLIB="$TARGET-ranlib"
 export STRIP="$TARGET-strip"
 
-# Install Linux headers
+
+STEP "Install Linux headers"
 mkdir -p $DIR_BUILD/build-linux
 cd $DIR_BUILD/build-linux
 make -C $DIR_SRC/linux -j $JOBS headers O=$(pwd)
 find usr/include -type f ! -name "*.h" -delete
 cp -r usr/include $DIR_MAPLE/share/
 
-# Build and install musl
+
+STEP "Build and install musl"
 mkdir -p $DIR_BUILD/build-musl
 cd $DIR_BUILD/build-musl
 $DIR_SRC/musl/configure \
@@ -182,7 +199,8 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 #       ~ahill
 ln -s /lib/libc.so $DIR_MAPLE/bin/ldd
 
-# Build and install toybox
+
+STEP "Build and install toybox"
 mkdir -p $DIR_BUILD/build-toybox
 cd $DIR_BUILD/build-toybox
 # NOTE: I cannot figure out how the heck to build toybox outside of the source
@@ -200,7 +218,8 @@ cp $DIR_PATCH/toybox.config .config
 LDFLAGS="-static" TARGET="" ./scripts/make.sh
 PREFIX=$DIR_MAPLE/bin TARGET="" ./scripts/install.sh --symlink
 
-# Build and install oksh
+
+STEP "Build and install oksh"
 mkdir -p $DIR_BUILD/build-oksh
 cd $DIR_BUILD/build-oksh
 $DIR_SRC/oksh/configure \
@@ -223,7 +242,8 @@ cp $DIR_SRC/oksh/ksh.1 .
 ln -s ksh $DIR_MAPLE/bin/sh
 make install DESTDIR="$DIR_MAPLE"
 
-# Build and install Hummingbird
+
+STEP "Build and install Hummingbird"
 mkdir -p $DIR_BUILD/build-hummingbird
 cd $DIR_BUILD/build-hummingbird
 # NOTE: Yes, an out of tree build is incredibly easy to do in this case, but the
@@ -250,7 +270,8 @@ mkdir -p $DIR_MAPLE/lib/hummingbird
 cp $DIR_SRC/hummingbird/usr/lib/hummingbird/* $DIR_MAPLE/lib/hummingbird/
 dd bs=512 count=1 if=/dev/urandom of=$DIR_MAPLE/etc/random.seed status=none
 
-# Build and install skalibs
+
+STEP "Build and install skalibs"
 mkdir -p $DIR_BUILD/build-skalibs
 cd $DIR_BUILD/build-skalibs
 # NOTE: Skalibs does not support out of tree builds, so we copy the tree here to
@@ -270,7 +291,8 @@ cp -r $DIR_SRC/skalibs/. .
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install mdevd
+
+STEP "Build and install mdevd"
 mkdir -p $DIR_BUILD/build-mdevd
 cd $DIR_BUILD/build-mdevd
 # NOTE: mdevd does not support out of tree builds, so we copy the tree here to
@@ -289,7 +311,8 @@ cp -r $DIR_SRC/mdevd/. .
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install Linux
+
+STEP "Build and install Linux"
 mkdir -p $DIR_BUILD/build-linux
 cd $DIR_BUILD/build-linux
 # TODO: Create a sane config for Maple Linux ~ahill
@@ -305,7 +328,8 @@ if make -C $DIR_SRC/linux -q dtbs > /dev/null 2>&1; then
     make -C $DIR_SRC/linux -j $JOBS dtbs_install INSTALL_DTBS_PATH=$DIR_MAPLE O=$(pwd)
 fi
 
-# Build and install ndhc
+
+STEP "Build and install ndhc"
 mkdir -p $DIR_BUILD/build-ndhc
 cd $DIR_BUILD/build-ndhc
 # NOTE: ndhc does not support out-of-tree builds, so we copy the source here.
@@ -319,7 +343,8 @@ cp ndhc $DIR_MAPLE/bin/
 mkdir -p $DIR_MAPLE/share/man/man8
 cp ndhc.8 $DIR_MAPLE/share/man/man8/
 
-# Build and install chrony
+
+STEP "Build and install chrony"
 mkdir -p $DIR_BUILD/build-chrony
 cd $DIR_BUILD/build-chrony
 # NOTE: Out of tree builds for chrony are broken. ~ahill
@@ -341,7 +366,8 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -j $JOBS
 make -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install Heirloom Toolchest
+
+STEP "Build and install Heirloom Toolchest"
 mkdir -p $DIR_BUILD/build-heirloom-toolchest
 cd $DIR_BUILD/build-heirloom-toolchest
 # NOTE: Out of tree builds aren't possible with Makefiles this old. ~ahill
@@ -352,11 +378,6 @@ cp -r $DIR_SRC/heirloom-toolchest/libcommon .
 #       what musl actually is. ~ahill
 # NOTE: No, that's not a typo. This Makefile uses CFLAGSS, not CFLAGS. ~ahill
 CFLAGSS="-D__dietlibc__" make -C libcommon -f Makefile.mk -O -j $JOBS
-# NOTE: The Makefile seems like a waste here, but it was likely added for SCCS
-#       compliance. Bypassing it since it's only a single file to build. ~ahill
-$CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/cmp/cmp.c \
-    libcommon/libcommon.a -o $DIR_MAPLE/bin/cmp
-cp $DIR_SRC/heirloom-toolchest/cmp/cmp.1 $DIR_MAPLE/share/man/man1/
 cp -r $DIR_SRC/heirloom-toolchest/diff .
 # NOTE: For some reason, symbols are defined in a header file without an
 #       "extern" modifier, so this patch fixes the duplicate symbols that occur
@@ -389,7 +410,8 @@ $CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/tr/tr.c \
 cp $DIR_SRC/heirloom-toolchest/tr/tr.1 $DIR_MAPLE/share/man/man1/
 # TODO: What exactly is man1b for? ~ahill
 
-# Build and install xz
+
+STEP "Build and install xz"
 mkdir -p $DIR_BUILD/build-xz
 cd $DIR_BUILD/build-xz
 # NOTE: Curse you auto-generating build scripts! ~ahill
@@ -412,7 +434,8 @@ CFLAGS="--sysroot=$DIR_MAPLE" ./configure \
 CFLAGS="--sysroot=$DIR_MAPLE" make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install awk
+
+STEP "Build and install awk"
 mkdir -p $DIR_BUILD/build-awk
 cd $DIR_BUILD/build-awk
 # NOTE: I'm sensing a pattern here, but there's no out of tree build. ~ahill
@@ -429,7 +452,8 @@ cp a.out $DIR_MAPLE/bin/awk
 mkdir -p $DIR_MAPLE/share/man/man1
 cp awk.1 $DIR_MAPLE/share/man/man1/
 
-# Build and install byacc
+
+STEP "Build and install byacc"
 mkdir -p $DIR_BUILD/build-byacc
 cd $DIR_BUILD/build-byacc
 # NOTE: Despite being based on autotools, this script gave no static or sysroot
@@ -451,7 +475,8 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $JOBS
 cp yacc $DIR_MAPLE/bin/byacc
 ln -s byacc $DIR_MAPLE/bin/yacc
 
-# Build and install m4
+
+STEP "Build and install m4"
 mkdir -p $DIR_BUILD/build-m4
 cd $DIR_BUILD/build-m4
 # NOTE: Technically, m4 supports building outside of the source tree, but the
@@ -478,7 +503,8 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install make
+
+STEP "Build and install make"
 mkdir -p $DIR_BUILD/build-make
 cd $DIR_BUILD/build-make
 # NOTE: Like a lot of GNU software, the configure script needs to be
@@ -502,7 +528,8 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install bc
+
+STEP "Build and install bc"
 mkdir -p $DIR_BUILD/build-bc
 cd $DIR_BUILD/build-bc
 # NOTE: bc does not respect the prefix when installing locales, so locales are
@@ -515,7 +542,8 @@ CFLAGS="-static" $DIR_SRC/bc/configure \
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install flex
+
+STEP "Build and install flex"
 mkdir $DIR_BUILD/build-flex
 cd $DIR_BUILD/build-flex
 # NOTE: Copying the source tree to the build folder since there's no configure
@@ -542,7 +570,8 @@ patch -p1 < $DIR_PATCH/flex-malloc.patch
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
-# Build and install Perl
+
+STEP "Build and install Perl"
 mkdir -p $DIR_BUILD/build-perl
 cd $DIR_BUILD/build-perl
 # NOTE: Perl doesn't have the ability to properly cross-compile itself, so
@@ -576,7 +605,8 @@ CFLAGS="$CFLAGS -D_GNU_SOURCE" ./configure \
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install autoconf
+
+STEP "Build and install autoconf"
 mkdir -p $DIR_BUILD/build-autoconf
 cd $DIR_BUILD/build-autoconf
 # NOTE: Since there is no configure script, the project needs to be
@@ -599,7 +629,8 @@ PERL="/bin/perl" ./configure \
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install automake
+
+STEP "Build and install automake"
 # FIXME: Point to /bin/perl for the interpreter instead of the host system's
 #        path. ~ahill
 mkdir -p $DIR_BUILD/build-automake
@@ -624,7 +655,8 @@ PERL="/bin/perl" ./configure \
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install slibtool
+
+STEP "Build and install slibtool"
 mkdir -p $DIR_BUILD/build-slibtool
 cd $DIR_BUILD/build-slibtool
 # NOTE: This isn't using autoconf/automake, so I'm not sure what the default
@@ -652,7 +684,8 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 ln -s slibtoolize $DIR_MAPLE/bin/libtoolize
 
-# Build and install Sortix libz (Not zlib!)
+
+STEP "Build and install Sortix libz (Not zlib!)"
 mkdir -p $DIR_BUILD/build-libz
 cd $DIR_BUILD/build-libz
 $DIR_SRC/libz/configure \
@@ -664,7 +697,8 @@ $DIR_SRC/libz/configure \
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
-# Build and install git
+
+STEP "Build and install git"
 mkdir -p $DIR_BUILD/build-git
 cd $DIR_BUILD/build-git
 # NOTE: There's no way to configure git outside of the Makefile, so I'm copying
@@ -694,7 +728,8 @@ make -O -j $JOBS install \
     OBJCOPY="$OBJCOPY" \
     STRIP="$STRIP"
 
-# Build and install GMP
+
+STEP "Build and install GMP"
 mkdir -p $DIR_BUILD/build-gmp
 cd $DIR_BUILD/build-gmp
 # NOTE: GMP needs to be bootstrapped, so the source tree is copied to the build
@@ -722,7 +757,8 @@ make -O -j $JOBS
 #       include directory like a sane package. ~ahill
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includeexecdir=/share/include
 
-# Build and install MPFR
+
+STEP "Build and install MPFR"
 mkdir -p $DIR_BUILD/build-mpfr
 cd $DIR_BUILD/build-mpfr
 # NOTE: Yet another repository that needs a configure script. ~ahill
@@ -748,7 +784,8 @@ cp -r $DIR_SRC/mpfr/. .
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
-# Build and install MPC
+
+STEP "Build and install MPC"
 mkdir -p $DIR_BUILD/build-mpc
 cd $DIR_BUILD/build-mpc
 # NOTE: This repository doesn't contain a configure OR an autogen.sh script, so
@@ -771,7 +808,8 @@ autoreconf -i
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
-# Build and install libstdc++
+
+STEP "Build and install libstdc++"
 mkdir -p $DIR_BUILD/build-libstdc++
 cd $DIR_BUILD/build-libstdc++
 # NOTE: Even though this is GPL-licensed, I'm building the static version of
@@ -797,10 +835,12 @@ $DIR_SRC/gcc/libstdc++-v3/configure \
 make -O -j $(nproc)
 make -O -j $(nproc) install DESTDIR="$DIR_MAPLE"
 
-# Clean libtool files since they are harmful for cross-compilation
+
+STEP "Clean libtool files since they are harmful for cross-compilation"
 find $DIR_MAPLE/lib -type f -name "*.la" -delete
 
-# Build and install binutils
+
+STEP "Build and install binutils"
 # FIXME: How can I prevent binutils from making a /$TARGET folder? ~ahill
 mkdir -p $DIR_BUILD/build-binutils
 cd $DIR_BUILD/build-binutils
@@ -831,7 +871,8 @@ cp -r $DIR_SRC/binutils-gdb/. .
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
-# Build and install gcc
+
+STEP "Build and install gcc"
 mkdir -p $DIR_BUILD/build-gcc
 cd $DIR_BUILD/build-gcc
 # NOTE: Technically, gcc supports an out-of-tree build, but GCC doesn't conform
@@ -887,7 +928,8 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 ln -s gcc $DIR_MAPLE/bin/cc
 
-# Build and install tomlc17
+
+STEP "Build and install tomlc17"
 mkdir -p $DIR_BUILD/build-tomlc17
 cd $DIR_BUILD/build-tomlc17
 # NOTE: The source tree needs to be copied to preserve source immutability.
@@ -900,7 +942,8 @@ cp src/libtomlc17.a $DIR_MAPLE/lib/
 cp src/tomlc17.h $DIR_MAPLE/share/include/
 cp src/tomlcpp.hpp $DIR_MAPLE/share/include/
 
-# Build and install Lua
+
+STEP "Build and install Lua"
 mkdir -p $DIR_BUILD/build-lua
 cd $DIR_BUILD/build-lua
 # NOTE: Lua is an old-school Makefile that doesn't support out of tree builds,
@@ -930,44 +973,39 @@ cp lua $DIR_MAPLE/bin/
 cp $DIR_PATCH/lua.hpp $DIR_MAPLE/share/include/
 # TODO: Is luac required? If so, how is it built? ~ahill
 
-# Build and install LuaDate
-mkdir -p $DIR_BUILD/build-luadate
-cd $DIR_BUILD/build-luadate
-# NOTE: There's no real install here. Just copy the file. ~ahill
+
+STEP "Install LuaDate"
 mkdir -p $DIR_MAPLE/share/lua/5.5
 cp $DIR_SRC/luadate/src/date.lua $DIR_MAPLE/share/lua/5.5/
 
-# Build and install Lua CJSON
-mkdir -p $DIR_BUILD/build-lua-cjson
-cd $DIR_BUILD/build-lua-cjson
-# NOTE: This uses a Makefile that manipulates the source tree. Copying the
-#       source tree to preserve immutability of DIR_SRC. ~ahill
-cp -r $DIR_SRC/lua-cjson/. .
-make -O -j $JOBS
-# NOTE: Just copying the library because it's easier than setting all of the
-#       Makefile variables properly. ~ahill
-mkdir -p $DIR_MAPLE/lib/lua/5.5
-cp cjson.so $DIR_MAPLE/lib/lua/5.5/
 
-# Build and install liquid.lua
+STEP "Install liquid-lua"
 mkdir -p $DIR_BUILD/build-liquid-lua
 cd $DIR_BUILD/build-liquid-lua
-# NOTE: There's no real install here. Just copy the file. ~ahill
 mkdir -p $DIR_MAPLE/share/lua/5.5
-cp $DIR_SRC/liquid-lua/lib/liquid.lua $DIR_MAPLE/share/lua/5.5/
+cp $DIR_SRC/liquid-lua/lib/liquid.lua .
+patch liquid.lua $DIR_PATCH/liquid-nocjson.patch
+cp liquid.lua $DIR_MAPLE/share/lua/5.5/
 
-# Build and install mapleconf
-mkdir -p $DIR_BUILD/build-mapleconf
-cd $DIR_BUILD/build-mapleconf
-# TODO: Does this even need to have a build directory? ~ahill
+
+STEP "Build and install mapleconf"
 $CC -o $DIR_MAPLE/bin/mapleconf \
     $DIR_SRC/mapleconf/mapleconf.c \
     -llua -ltomlc17
 mkdir -p $DIR_MAPLE/share/mapleconf
 cp $DIR_BASE/maple.toml $DIR_MAPLE/etc/
 
-# Prepare the image
+
+STEP "Install maplelinux-tools"
+# FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
+#        ~ahill
+cp "$DIR_SRC/maplelinux-tools/maple-chroot" "$DIR_MAPLE/bin/"
+
+
+STEP "Prepare the image"
 cd $DIR_MAPLE
+# TODO: Fix bootstrapping mapleconf before uncommenting the following line.
+#       ~ahill
 #$DIR_TOOLS/mapleconf \
 #    -c "$DIR_BASE/maple.toml" \
 #    -r "$DIR_MAPLE" \

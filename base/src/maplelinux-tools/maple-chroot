@@ -1,0 +1,22 @@
+#!/bin/sh
+
+if [ ! -d "$1" ]; then
+    echo "Usage: $0 <root>"
+    exit 1
+fi
+
+if mount --rbind /dev "$1/dev" && mount --make-rslave "$1/dev"; then
+    if mount -t proc /proc "$1/proc"; then
+        if mount --rbind /sys "$1/sys" && mount --make-rslave "$1/sys"; then
+            if mount -t tmpfs tmpfs "$1/tmp"; then
+                SHELL="$2"
+                [ -z "$SHELL" ] && SHELL=/bin/sh
+                chroot "$1" "$SHELL"
+                umount -R "$1/tmp"
+            fi
+            umount -R "$1/sys"
+        fi
+        umount -R "$1/proc"
+    fi
+    umount -R "$1/dev"
+fi
