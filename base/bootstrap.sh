@@ -854,14 +854,15 @@ find $DIR_MAPLE/lib -type f -name "*.la" -delete
 
 
 STEP "Build and install binutils"
-# FIXME: How can I prevent binutils from making a /$TARGET folder? ~ahill
 mkdir -p $DIR_BUILD/build-binutils
 cd $DIR_BUILD/build-binutils
+# TODO: Investigate --with-lib-path for binutils to prevent future issues with
+#       linking. ~ahill
 # NOTE: binutils can handle out of tree builds, but there's apparently a
 #       *slight* API incompatibility with struct termios that prevents
 #       gdb/ser-unix.c from building properly under musl. ~ahill
 cp -r $DIR_SRC/binutils-gdb/. .
-#patch -p1 < $DIR_PATCH/gdb-musl-compat.patch
+patch -p1 < $DIR_PATCH/gdb-musl-compat.patch
 # FIXME: gdb requires readline to function, which is not installed right now.
 #        I'll have to revisit this later. ~ahill
 ./configure \
@@ -875,14 +876,16 @@ cp -r $DIR_SRC/binutils-gdb/. .
     --libexecdir=/lib \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --target=$TARGET \
     --with-build-sysroot="$DIR_MAPLE" \
     --with-gcc-major-version-only
-make -O -j $JOBS
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+# NOTE: tooldir is manually set here to prevent binutils from creating a
+#       /$TARGET directory. ~ahill
+make -O -j $JOBS tooldir=""
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" tooldir=""
 
 
 STEP "Build and install gcc"
