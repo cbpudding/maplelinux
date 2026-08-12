@@ -407,7 +407,6 @@ cp diff/diff.1 $DIR_MAPLE/share/man/man1/
 $CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/diff3/diff3prog.c \
     libcommon/libcommon.a -o $DIR_MAPLE/lib/diff3prog
 cp $DIR_SRC/heirloom-toolchest/diff3/diff3.1 $DIR_MAPLE/share/man/man1/
-# TODO: What the heck is @SV3BIN@ supposed to be? ~ahill
 echo "#!/bin/sh" | cat - $DIR_SRC/heirloom-toolchest/diff3/diff3.sh \
     | sed "s|@DEFBIN@|/bin|;s|@DEFLIB@|/lib|;s|@SV3BIN@:||" \
     > $DIR_MAPLE/bin/diff3
@@ -418,10 +417,9 @@ cp $DIR_SRC/heirloom-toolchest/expr/expr.1 $DIR_MAPLE/share/man/man1/
 $CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/sdiff/sdiff.c \
     libcommon/libcommon.a -o $DIR_MAPLE/bin/sdiff
 cp $DIR_SRC/heirloom-toolchest/sdiff/sdiff.1 $DIR_MAPLE/share/man/man1/
-$CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/tr/tr.c \
+$CC -DSUS -Ilibcommon -static $DIR_SRC/heirloom-toolchest/tr/tr.c \
     libcommon/libcommon.a -o $DIR_MAPLE/bin/tr
 cp $DIR_SRC/heirloom-toolchest/tr/tr.1 $DIR_MAPLE/share/man/man1/
-# TODO: What exactly is man1b for? ~ahill
 
 
 STEP "Build and install xz"
