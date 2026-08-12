@@ -30,6 +30,14 @@
 #   define MAPLECONF_CONFIG_PATH "/etc/maple.toml"
 #endif
 
+const char MAPLECONF_LIQUID_LUA_SRC[] = {
+#   embed "liquid.lua"
+};
+
+const char MAPLECONF_LUADATE_SRC[] = {
+#   embed "date.lua"
+};
+
 #ifndef MAPLECONF_TEMPLATE_PATH
 #   define MAPLECONF_TEMPLATE_PATH "/share/mapleconf"
 #endif
@@ -294,6 +302,31 @@ int push_configuration_table(toml_datum_t *datum, lua_State *state) {
     return status;
 }
 
+int require_lua_module(lua_State *state, const char *module) {
+    if(lua_getglobal(state, "require") != LUA_TFUNCTION) {
+        fprintf(stderr, "Lua global \"require\" is somehow not a function?\n");
+        lua_pop(state, 1);
+        return 1;
+    }
+
+    lua_pushstring(state, module);
+
+    if(lua_pcall(state, 1, 1, 0) != LUA_OK) {
+        fprintf(
+            stderr,
+            "Failed to require \"%s\": %s\n",
+            module,
+            lua_tostring(state, -1)
+        );
+        lua_pop(state, 1);
+        return 1;
+    }
+
+    lua_setglobal(state, module);
+
+    return 0;
+}
+
 lua_State *init_template_engine(toml_result_t *config) {
     lua_State *state;
 
@@ -309,39 +342,52 @@ lua_State *init_template_engine(toml_result_t *config) {
     luaL_openlibs(state);
 
     // _G.date = require("date")
-    if(lua_getglobal(state, "require") != LUA_TFUNCTION) {
-        fprintf(stderr, "Lua global \"require\" is somehow not a function?\n");
-        lua_close(state);
-        return NULL;
-    }
-
-    lua_pushstring(state, "date");
-
-    if(lua_pcall(state, 1, 1, 0) != LUA_OK) {
+    // _G.liquid = require("liquid")
+    lua_getglobal(state, "package");
+    lua_getfield(state, -1, "preload");
+    if(luaL_loadbufferx(
+        state,
+        MAPLECONF_LUADATE_SRC,
+        sizeof(MAPLECONF_LUADATE_SRC),
+        "@date.lua",
+        "t"
+    ) != LUA_OK) {
         fprintf(
             stderr,
-            "Failed to load LuaDate: %s\n",
+            "Error while preloading LuaDate: %s\n",
             lua_tostring(state, -1)
         );
         lua_close(state);
         return NULL;
     }
+    lua_setfield(state, -2, "date");
+    if(luaL_loadbufferx(
+        state,
+        MAPLECONF_LIQUID_LUA_SRC,
+        sizeof(MAPLECONF_LIQUID_LUA_SRC),
+        "@liquid.lua",
+        "t"
+    ) != LUA_OK) {
+        fprintf(
+            stderr,
+            "Error while preloading liquid-lua: %s\n",
+            lua_tostring(state, -1)
+        );
+        lua_close(state);
+        return NULL;
+    }
+    lua_setfield(state, -2, "liquid");
+    lua_pop(state, 2);
 
-    lua_setglobal(state, "date");
-
-    // What are the chances of require being a function the first time we check,
-    // but not the second? ~ahill
-    // _G.liquid = require("liquid")
-    lua_getglobal(state, "require");
-    lua_pushstring(state, "liquid");
-
-    if(lua_pcall(state, 1, 1, 0) != LUA_OK) {
-        fprintf(stderr, "Failed to load Liquid: %s\n", lua_tostring(state, -1));
+    if(require_lua_module(state, "date")) {
         lua_close(state);
         return NULL;
     }
 
-    lua_setglobal(state, "liquid");
+    if(require_lua_module(state, "liquid")) {
+        lua_close(state);
+        return NULL;
+    }
 
     // _G.context = liquid.InterpreterContext:new(config)
     lua_getglobal(state, "liquid");

@@ -151,10 +151,23 @@ make -O -j $JOBS install
 ln -s $TARGET-gcc $DIR_TOOLS/bin/$TARGET-cc
 
 
+STEP "Install LuaDate"
+mkdir -p $DIR_MAPLE/share/lua/5.5
+cp $DIR_SRC/luadate/src/date.lua $DIR_MAPLE/share/lua/5.5/
+
+
+STEP "Patch and install liquid-lua"
+mkdir -p $DIR_BUILD/build-liquid-lua
+cd $DIR_BUILD/build-liquid-lua
+mkdir -p $DIR_MAPLE/share/lua/5.5
+cp $DIR_SRC/liquid-lua/lib/liquid.lua .
+patch liquid.lua $DIR_PATCH/liquid-nocjson.patch
+cp liquid.lua $DIR_MAPLE/share/lua/5.5/
+
+
 STEP "Build a native copy of mapleconf for later use"
-# FIXME: How to prevent issues with runtime dependencies such as lua-cjson
-#        during the bootstrap? ~ahill
 $CC -o "$DIR_TOOLS/mapleconf" \
+    --embed-dir="$DIR_MAPLE/share/lua/5.5" \
     -I $DIR_SRC/tomlc17/src \
     $DIR_SRC/mapleconf/mapleconf.c \
     $DIR_SRC/tomlc17/src/tomlc17.c \
@@ -974,22 +987,9 @@ cp $DIR_PATCH/lua.hpp $DIR_MAPLE/share/include/
 # TODO: Is luac required? If so, how is it built? ~ahill
 
 
-STEP "Install LuaDate"
-mkdir -p $DIR_MAPLE/share/lua/5.5
-cp $DIR_SRC/luadate/src/date.lua $DIR_MAPLE/share/lua/5.5/
-
-
-STEP "Install liquid-lua"
-mkdir -p $DIR_BUILD/build-liquid-lua
-cd $DIR_BUILD/build-liquid-lua
-mkdir -p $DIR_MAPLE/share/lua/5.5
-cp $DIR_SRC/liquid-lua/lib/liquid.lua .
-patch liquid.lua $DIR_PATCH/liquid-nocjson.patch
-cp liquid.lua $DIR_MAPLE/share/lua/5.5/
-
-
 STEP "Build and install mapleconf"
 $CC -o $DIR_MAPLE/bin/mapleconf \
+    --embed-dir="$DIR_MAPLE/share/lua/5.5" \
     $DIR_SRC/mapleconf/mapleconf.c \
     -llua -ltomlc17
 mkdir -p $DIR_MAPLE/share/mapleconf
@@ -1004,11 +1004,9 @@ cp "$DIR_SRC/maplelinux-tools/maple-chroot" "$DIR_MAPLE/bin/"
 
 STEP "Prepare the image"
 cd $DIR_MAPLE
-# TODO: Fix bootstrapping mapleconf before uncommenting the following line.
-#       ~ahill
-#$DIR_TOOLS/mapleconf \
-#    -c "$DIR_BASE/maple.toml" \
-#    -r "$DIR_MAPLE" \
-#    -t "$DIR_MAPLE/share/mapleconf"
+$DIR_TOOLS/mapleconf \
+    -c "$DIR_BASE/maple.toml" \
+    -r "$DIR_MAPLE" \
+    -t "$DIR_MAPLE/share/mapleconf"
 #rm -rf $DIR_MAPLE/maple
 #tar cJf ../base-$(date +%Y%m%d%H%M).txz *
