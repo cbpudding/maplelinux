@@ -658,9 +658,9 @@ cd $DIR_BUILD/build-autoconf
 #       bootstrapped, which requires a mutable source tree to accomplish. ~ahill
 cp -r $DIR_SRC/autoconf/. .
 ./bootstrap
-# NOTE: PERL is manually set here so autoconf knows where to look on Maple Linux
-#       and *not* the build system. ~ahill
-PERL="/bin/perl" ./configure \
+# NOTE: M4 and PERL are manually set here so autoconf knows where to look on
+#       Maple Linux and *not* the build system. ~ahill
+M4="/bin/m4" PERL="/bin/perl" ./configure \
     --build=$(./config.guess) \
     --host=$TARGET \
     --includedir=/share/include \
@@ -684,9 +684,9 @@ cd $DIR_BUILD/build-automake
 #       bootstrapped, which requires a mutable source tree to accomplish. ~ahill
 cp -r $DIR_SRC/automake/. .
 ./bootstrap
-# NOTE: PERL is manually set here so automake knows where to look on Maple Linux
-#       and *not* the build system. ~ahill
-PERL="/bin/perl" ./configure \
+# NOTE: M4 and PERL are manually set here so autoconf knows where to look on
+#       Maple Linux and *not* the build system. ~ahill
+M4="/bin/m4" PERL="/bin/perl" ./configure \
     --build=$(./config.guess) \
     --host=$TARGET \
     --includedir=/share/include \
