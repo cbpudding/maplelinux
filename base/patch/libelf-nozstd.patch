@@ -1,0 +1,24 @@
+diff -ruN vanilla/Makefile maple/Makefile
+--- vanilla/Makefile	2026-08-14 12:42:03.092030889 -0400
++++ maple/Makefile	2026-08-14 12:42:55.201028647 -0400
+@@ -3,7 +3,7 @@
+ 
+ CFLAGS = -O2 -Wall
+ LDFLAGS =
+-LDLIBS = -lz -lzstd
++LDLIBS = -lz
+ 
+ MAJOR = 1
+ MINOR = 0.195
+diff -ruN vanilla/src/config.h maple/src/config.h
+--- vanilla/src/config.h	2026-08-14 12:42:03.094073353 -0400
++++ maple/src/config.h	2026-08-14 12:44:03.323025715 -0400
+@@ -7,8 +7,6 @@
+ #define HAVE_DECL_RAWMEMCHR 0
+ #define HAVE_DECL_REALLOCARRAY 1
+ #define HAVE_VISIBILITY 1
+-#define USE_ZSTD 1
+-#define USE_ZSTD_COMPRESS 1
+ 
+ #undef HAVE_GCC_STRUCT
+ #undef USE_LOCKS

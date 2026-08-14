@@ -357,12 +357,36 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
 
+STEP "Build and install Sortix libz (Not zlib!)"
+mkdir -p $DIR_BUILD/build-libz
+cd $DIR_BUILD/build-libz
+$DIR_SRC/libz/configure \
+    --eprefix="" \
+    --includedir=/share/include \
+    --libdir=/lib \
+    --prefix="" \
+    --sharedlibdir=/lib
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+
+
+STEP "Build and install libelf"
+mkdir -p "$DIR_BUILD/build-libelf"
+cd "$DIR_BUILD/build-libelf"
+# NOTE: libelf is copied here since the source code needs to be patched. ~ahill
+cp -r "$DIR_SRC/libelf/." .
+patch -p1 < "$DIR_PATCH/libelf-nozstd.patch"
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INCDIR=/share/include
+
+
 STEP "Build and install Linux"
 mkdir -p $DIR_BUILD/build-linux
 cd $DIR_BUILD/build-linux
-# TODO: Create a sane config for Maple Linux ~ahill
-make -C $DIR_SRC/linux -j $JOBS defconfig O=$(pwd)
-make -C $DIR_SRC/linux -j $JOBS O=$(pwd)
+cp "$DIR_PATCH/linux.$(echo $TARGET | cut -d"-" -f1).config" .config
+# NOTE: Linux's Makefile seems to ignore the environment's YACC variable, so it
+#       is manually defined here. ~ahill
+make -C $DIR_SRC/linux -j $JOBS O=$(pwd) YACC=$YACC
 make -C $DIR_SRC/linux -j $JOBS modules_install INSTALL_MOD_PATH=$DIR_MAPLE O=$(pwd)
 cp $(make image_name) $DIR_MAPLE/boot/vmlinuz-$(make kernelrelease)
 cp System.map $DIR_MAPLE/boot/System.map-$(make kernelrelease)
@@ -490,7 +514,7 @@ cp -r $DIR_SRC/awk/. .
 #       Outside of the selection of tools, CFLAGS is shared between CC and
 #       HOSTCC, which seems like a bad idea since I need to pass --sysroot.
 #       ~ahill
-make -O -j $JOBS CC="$CC -static --sysroot=$DIR_MAPLE" YACC="byacc -d -b awkgram"
+make -O -j $JOBS CC="$CC -static --sysroot=$DIR_MAPLE" YACC="$YACC -d -b awkgram"
 # NOTE: There's no make install target in this case, so I hope I'm doing this
 #       correctly. ~ahill
 cp a.out $DIR_MAPLE/bin/awk
@@ -728,19 +752,6 @@ $DIR_SRC/slibtool/configure \
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 ln -s slibtoolize $DIR_MAPLE/bin/libtoolize
-
-
-STEP "Build and install Sortix libz (Not zlib!)"
-mkdir -p $DIR_BUILD/build-libz
-cd $DIR_BUILD/build-libz
-$DIR_SRC/libz/configure \
-    --eprefix="" \
-    --includedir=/share/include \
-    --libdir=/lib \
-    --prefix="" \
-    --sharedlibdir=/lib
-make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
 
 STEP "Build and install git"

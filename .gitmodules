@@ -103,3 +103,6 @@
 [submodule "base/src/netbsd-curses"]
 	path = base/src/netbsd-curses
 	url = https://github.com/sabotage-linux/netbsd-curses
+[submodule "base/src/libelf"]
+	path = base/src/libelf
+	url = https://github.com/arachsys/libelf
