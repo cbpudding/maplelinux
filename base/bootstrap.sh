@@ -214,7 +214,6 @@ ln -s /lib/libc.so $DIR_MAPLE/bin/ldd
 
 
 STEP "Build and install toybox"
-# TODO: Remove CONFIG_CLEAR and CONFIG_RESET
 mkdir -p $DIR_BUILD/build-toybox
 cd $DIR_BUILD/build-toybox
 # NOTE: I cannot figure out how the heck to build toybox outside of the source
