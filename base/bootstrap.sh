@@ -219,6 +219,11 @@ cd $DIR_BUILD/build-toybox
 # NOTE: I cannot figure out how the heck to build toybox outside of the source
 #       tree, so this will have to do for now. ~ahill
 cp -r $DIR_SRC/toybox/. .
+# NOTE: Some of Toybox's scripts use GNU-specific behaviors. This patch replaces
+#       anything I was able to find with portable syntax. So far, the only issue
+#       I've found was a difference between POSIX tr and GNU tr, which behaves
+#       differently when the operands given are of different lengths. ~ahill
+patch -p1 < $DIR_PATCH/toybox-portability.patch
 # NOTE: Toybox sees $TARGET and decides to append a suffix to the main program,
 #       which is not what I'm looking for. Yes, it's being cross-compiled, but
 #       the system that's running it doesn't need to be reminded of its own

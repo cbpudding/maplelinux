@@ -1,0 +1,12 @@
+diff -ruN vanilla/scripts/make.sh maple/scripts/make.sh
+--- vanilla/scripts/make.sh	2026-08-13 13:28:17.772578668 -0400
++++ maple/scripts/make.sh	2026-08-14 09:32:10.271521128 -0400
+@@ -175,7 +175,7 @@
+ 
+ # Create tags.h
+ $SED -ne '/TAGGED_ARRAY(/,/^)/{s/.*TAGGED_ARRAY[(]\([^,]*\),/\1/p' \
+-  -e 's/[^{]*{"\([^"]*\)"[^{]*/ _\1/gp}' toys/*/*.c | tr '[:punct:]' _ | \
++  -e 's/[^{]*{"\([^"]*\)"[^{]*/ _\1/gp}' toys/*/*.c | tr '[:punct:]' '[_*]' | \
+ while read i; do
+   [ "$i" = "${i#_}" ] && { HEAD="$i"; X=0; LL=; continue;}
+   for j in $i; do
