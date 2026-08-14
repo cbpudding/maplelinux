@@ -16,9 +16,6 @@
 [submodule "base/src/musl"]
 	path = base/src/musl
 	url = git://git.musl-libc.org/musl
-[submodule "base/src/oksh"]
-	path = base/src/oksh
-	url = https://github.com/ibara/oksh
 [submodule "base/src/skalibs"]
 	path = base/src/skalibs
 	url = git://git.skarnet.org/skalibs
@@ -100,3 +97,9 @@
 [submodule "base/src/liquid-lua"]
 	path = base/src/liquid-lua
 	url = https://github.com/3scale/liquid-lua
+[submodule "base/src/zsh"]
+	path = base/src/zsh
+	url = https://git.code.sf.net/p/zsh/code
+[submodule "base/src/netbsd-curses"]
+	path = base/src/netbsd-curses
+	url = https://github.com/sabotage-linux/netbsd-curses

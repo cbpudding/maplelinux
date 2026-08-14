@@ -214,6 +214,7 @@ ln -s /lib/libc.so $DIR_MAPLE/bin/ldd
 
 
 STEP "Build and install toybox"
+# TODO: Remove CONFIG_CLEAR and CONFIG_RESET
 mkdir -p $DIR_BUILD/build-toybox
 cd $DIR_BUILD/build-toybox
 # NOTE: I cannot figure out how the heck to build toybox outside of the source
@@ -232,28 +233,55 @@ LDFLAGS="-static" TARGET="" ./scripts/make.sh
 PREFIX=$DIR_MAPLE/bin TARGET="" ./scripts/install.sh --symlink
 
 
-STEP "Build and install oksh"
-mkdir -p $DIR_BUILD/build-oksh
-cd $DIR_BUILD/build-oksh
-$DIR_SRC/oksh/configure \
-    --bindir=/bin \
-    --cc=$CC \
-    --cflags=$CFLAGS \
-    --enable-ksh \
-    --enable-small \
-    --enable-static \
-    --prefix=/ \
-    --mandir=/share/man
+STEP "Build and install netbsd-curses"
+mkdir -p $DIR_BUILD/build-netbsd-curses
+cd $DIR_BUILD/build-netbsd-curses
+# NOTE: The Makefile doesn't support out-of-tree builds, so the source code is
+#       copied here to keep DIR_SRC immutable. ~ahill
+cp -r $DIR_SRC/netbsd-curses/. .
+make -O -j $JOBS PREFIX=""
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INCDIR=/share/include PREFIX=""
+
+
+STEP "Build and install zsh"
+# TODO: Review completions to see which directories are even necessary for Maple
+#       Linux. ~ahill
+mkdir -p $DIR_BUILD/build-zsh
+cd $DIR_BUILD/build-zsh
+# NOTE: Another autotools-based project that needs to generate a configure
+#       script... ~ahill
+cp -r $DIR_SRC/zsh/. .
+# NOTE: Some functions in zsh are GPL-licensed rather than MIT-licensed like the
+#       rest of the software. These are removed to keep everything purely
+#       MIT-licensed. ~ahill
+rm -f Completion/Linux/Command/_qdbus
+rm -f Completion/openSUSE/Command/_osc
+rm -f Completion/openSUSE/Command/_zypper
+rm -f Completion/Unix/Command/_darcs
+./.preconfig
+# NOTE: Since zsh is being linked with netbsd-curses, the program doesn't link
+#       properly without manually defining LIBS. The netbsd-curses README hints
+#       at issues like this due to how the library was structured. ~ahill
+LIBS="-lcurses -lterminfo" ./configure \
+    --build=$(./config.guess) \
+    --disable-dynamic \
+    --enable-ldflags="-static" \
+    --enable-libc-musl \
+    --enable-multibyte \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
 make -O -j $JOBS
-# FIXME: For some reason, out-of-tree builds don't install the documentation
-#        correctly. This is a temporary workaround, but this should be patched
-#        upstream. ~ahill
-cp $DIR_SRC/oksh/ksh.1 .
-# NOTE: Rather than having two copies of ksh that are identical, make a symlink
-#       to /bin/ksh so users can clearly see that it's a copy. Has the added
-#       bonus of not wasting space on the disk. ~ahill
-ln -s ksh $DIR_MAPLE/bin/sh
-make install DESTDIR="$DIR_MAPLE"
+make -O -j $JOBS install.bin install.modules install.fns DESTDIR="$DIR_MAPLE"
+ln -s zsh "$DIR_MAPLE/bin/bash"
+ln -s zsh "$DIR_MAPLE/bin/sh"
 
 
 STEP "Build and install Hummingbird"
@@ -417,6 +445,8 @@ cp $DIR_SRC/heirloom-toolchest/expr/expr.1 $DIR_MAPLE/share/man/man1/
 $CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/sdiff/sdiff.c \
     libcommon/libcommon.a -o $DIR_MAPLE/bin/sdiff
 cp $DIR_SRC/heirloom-toolchest/sdiff/sdiff.1 $DIR_MAPLE/share/man/man1/
+# NOTE: The SUS version of tr is a bit closer to the GNU version, but it's still
+#       not 100% compatible. ~ahill
 $CC -DSUS -Ilibcommon -static $DIR_SRC/heirloom-toolchest/tr/tr.c \
     libcommon/libcommon.a -o $DIR_MAPLE/bin/tr
 cp $DIR_SRC/heirloom-toolchest/tr/tr.1 $DIR_MAPLE/share/man/man1/
