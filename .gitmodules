@@ -106,3 +106,9 @@
 [submodule "base/src/libelf"]
 	path = base/src/libelf
 	url = https://github.com/arachsys/libelf
+[submodule "base/src/libressl"]
+	path = base/src/libressl
+	url = https://github.com/libressl/portable
+[submodule "base/src/libressl-openbsd"]
+	path = base/src/libressl-openbsd
+	url = https://github.com/libressl/openbsd
