@@ -776,6 +776,9 @@ cd $DIR_BUILD/build-slibtool
 # NOTE: This isn't using autoconf/automake, so I'm not sure what the default
 #       values of the variables are. Might as well define everything to be sure.
 #       ~ahill
+# NOTE: autoconf can't seem to find slibtool unless --m4-dir is set to
+#       /share/aclocal, which is not a documented switch for configure as far as
+#       I can tell. Neat! ~ahill
 $DIR_SRC/slibtool/configure \
     --all-static \
     --bindir=/bin \
@@ -787,6 +790,7 @@ $DIR_SRC/slibtool/configure \
     --libdir=/lib \
     --libexecdir=/lib \
     --localedir=/share/locale \
+    --m4-dir=/share/aclocal \
     --mandir=/share/man \
     --oldincludedir=/share/include \
     --prefix="" \
