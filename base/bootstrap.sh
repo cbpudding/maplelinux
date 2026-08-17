@@ -137,6 +137,7 @@ cd build-within-a-build
     --target=$TARGET \
     --with-gcc-major-version-only \
     --with-gmp=$DIR_SRC/gmp \
+    --with-gxx-include-dir="$DIR_MAPLE/share/include/c++/16" \
     --with-mpc=$DIR_SRC/mpc \
     --with-mpfr=$DIR_SRC/mpfr \
     --with-native-system-header-dir=/share/include \
@@ -313,6 +314,7 @@ cp bin/reboot $DIR_MAPLE/bin/
 cp bin/shutdown $DIR_MAPLE/bin/
 mkdir -p $DIR_MAPLE/lib/hummingbird
 cp $DIR_SRC/hummingbird/usr/lib/hummingbird/* $DIR_MAPLE/lib/hummingbird/
+# TODO: Should this be re-run on first boot? ~ahill
 dd bs=512 count=1 if=/dev/urandom of=$DIR_MAPLE/etc/random.seed status=none
 
 
@@ -387,6 +389,9 @@ cd $DIR_BUILD/build-libressl
 cp -r $DIR_SRC/libressl/. .
 # NOTE: LibreSSL requires a chunk of the OpenBSD source code to build. ~ahill
 cp -r $DIR_SRC/libressl-openbsd openbsd
+# NOTE: zsh does not like "fi done" at all, so a semicolon is placed between the
+#       two to prevent zsh from throwing a parse error. ~ahill
+sed -i 's/^\([[:space:]]*\)fi \\$/\1fi; \\/' Makefile.am
 ./autogen.sh
 # TODO: Split LibreSSL's directory between /etc and /share to match Maple's
 #       hierarchy. ~ahill
@@ -461,6 +466,11 @@ mkdir -p $DIR_BUILD/build-chrony
 cd $DIR_BUILD/build-chrony
 # NOTE: Out of tree builds for chrony are broken. ~ahill
 cp -r $DIR_SRC/chrony/. .
+# NOTE: Chrony hard-codes its use of bison in the Makefile. The following sed
+#       command takes advantage of the YACC variable to select the right
+#       implementation. getdate.y uses the bison-specific directive %expect,
+#       however it seems to build normally with byacc. ~ahill
+sed -i 's/bison/$(YACC)/' Makefile.in
 # TODO: Create an actual user for chrony{c,d} and specify --with{,-chronyc}-user
 #       ~ahill
 # NOTE: There does not appear to be an option to specify a sysroot or static
@@ -472,11 +482,16 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
     --host-machine=$(echo $TARGET | cut -d"-" -f1) \
     --host-system=Linux \
     --localstatedir=/etc \
-    --prefix=/ \
+    --prefix="" \
     --sbindir=/bin \
     --with-pidfile=/tmp/chronyd.pid
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -j $JOBS
-make -j $JOBS install DESTDIR=$DIR_MAPLE
+# NOTE: make install attempts to build/install documentation, which won't work
+#       on Maple Linux since asciidoctor isn't installed. Installing by hand to
+#       avoid the dependency. ~ahill
+cp chronyc $DIR_MAPLE/bin/
+cp chronyd $DIR_MAPLE/bin/
+mkdir -p $DIR_MAPLE/etc/chrony
 
 
 STEP "Build and install Heirloom Toolchest"
@@ -508,7 +523,7 @@ cp diff/diff.1 $DIR_MAPLE/share/man/man1/
 $CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/diff3/diff3prog.c \
     libcommon/libcommon.a -o $DIR_MAPLE/lib/diff3prog
 cp $DIR_SRC/heirloom-toolchest/diff3/diff3.1 $DIR_MAPLE/share/man/man1/
-echo "#!/bin/sh" | cat - $DIR_SRC/heirloom-toolchest/diff3/diff3.sh \
+echo '#!/bin/sh' | cat - $DIR_SRC/heirloom-toolchest/diff3/diff3.sh \
     | sed "s|@DEFBIN@|/bin|;s|@DEFLIB@|/lib|;s|@SV3BIN@:||" \
     > $DIR_MAPLE/bin/diff3
 chmod +x $DIR_MAPLE/bin/diff3
@@ -523,6 +538,15 @@ cp $DIR_SRC/heirloom-toolchest/sdiff/sdiff.1 $DIR_MAPLE/share/man/man1/
 $CC -DSUS -Ilibcommon -static $DIR_SRC/heirloom-toolchest/tr/tr.c \
     libcommon/libcommon.a -o $DIR_MAPLE/bin/tr
 cp $DIR_SRC/heirloom-toolchest/tr/tr.1 $DIR_MAPLE/share/man/man1/
+
+
+STEP "Build and install gettext-tiny"
+mkdir -p $DIR_BUILD/build-gettext-tiny
+cd $DIR_BUILD/build-gettext-tiny
+# TODO: Check to see if this supports an out-of-tree build or not. ~ahill
+cp -r $DIR_SRC/gettext-tiny/. .
+make -O -j $JOBS prefix=""
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includedir=/share/include prefix=""
 
 
 STEP "Build and install xz"
@@ -629,6 +653,7 @@ patch -p1 < $DIR_PATCH/make-maple.patch
 # NOTE: Configure doesn't give static and sysroot as options! ~ahill
 CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
     --build=$(build-aux/config.guess) \
+    --disable-nls \
     --enable-year2038 \
     --host=$TARGET \
     --includedir=/share/include \
@@ -809,6 +834,9 @@ cd $DIR_BUILD/build-git
 # NOTE: There's no way to configure git outside of the Makefile, so I'm copying
 #       the source tree here. ~ahill
 cp -r $DIR_SRC/git/. .
+# NOTE: zsh does not like "fi done" at all, so a semicolon is placed between the
+#       two to prevent zsh from throwing a parse error. ~ahill
+sed -i 's/^\([[:space:]]*\)fi \\$/\1fi; \\/' Makefile
 # NOTE: Tools like AR, CC, LD, OBJCOPY, and STRIP are manually passed to the
 #       Makefile because they are assigned with "=" instead of "?=". ~ahill
 make -O -j $JOBS install \
@@ -936,7 +964,7 @@ $DIR_SRC/gcc/libstdc++-v3/configure \
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --with-gcc-major-version-only \
-    --with-gxx-include-dir=/maple/tools/$TARGET/include/c++/16
+    --with-gxx-include-dir=/share/include/c++/16
 make -O -j $(nproc)
 make -O -j $(nproc) install DESTDIR="$DIR_MAPLE"
 
@@ -1030,8 +1058,8 @@ LDFLAGS_FOR_TARGET="-L$(pwd)/$TARGET/libgcc" ../configure \
     --target=$TARGET \
     --with-build-sysroot=$DIR_MAPLE \
     --with-gcc-major-version-only \
-    --with-native-system-header-dir=/share/include \
-    --with-sysroot=/
+    --with-gxx-include-dir=/share/include/c++/16 \
+    --with-native-system-header-dir=/share/include
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 ln -s gcc $DIR_MAPLE/bin/cc
@@ -1099,6 +1127,7 @@ cp "$DIR_SRC/maplelinux-tools/maple-chroot" "$DIR_MAPLE/bin/"
 
 STEP "Prepare the image"
 cd $DIR_MAPLE
+cp -r $DIR_BASE/overlay/. $DIR_MAPLE/
 $DIR_TOOLS/mapleconf \
     -c "$DIR_BASE/maple.toml" \
     -r "$DIR_MAPLE" \

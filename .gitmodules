@@ -112,3 +112,6 @@
 [submodule "base/src/libressl-openbsd"]
 	path = base/src/libressl-openbsd
 	url = https://github.com/libressl/openbsd
+[submodule "base/src/gettext-tiny"]
+	path = base/src/gettext-tiny
+	url = https://github.com/sabotage-linux/gettext-tiny
