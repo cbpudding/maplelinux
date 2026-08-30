@@ -685,7 +685,7 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
 #        see GNU make going anywhere anytime soon, so this should actually get
 #        fixed at some point. ~ahill
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $JOBS MAKEINFO=true
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE MAKEINFO=true
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" MAKEINFO=true
 
 
 STEP "Build and install bc"
@@ -693,13 +693,12 @@ mkdir -p $DIR_BUILD/build-bc
 cd $DIR_BUILD/build-bc
 # NOTE: bc does not respect the prefix when installing locales, so locales are
 #       disabled to prevent bc from violating the filesystem heirarchy. ~ahill
-CFLAGS="-static" $DIR_SRC/bc/configure \
-    --disable-nls \
-    --enable-internal-history \
-    --includedir /share/include \
-    --prefix /
+# NOTE: zsh has a conformance issue with getopts that prevents it from parsing
+#       long options properly. Using short options and environment variables as
+#       a workaround. ~ahill
+CFLAGS="-static" INCLUDEDIR=/share/include PREFIX="" $DIR_SRC/bc/configure -Ni
 make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Build and install flex"
