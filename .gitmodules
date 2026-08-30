@@ -118,3 +118,6 @@
 [submodule "base/src/gperf"]
 	path = base/src/gperf
 	url = https://https.git.savannah.gnu.org/git/gperf.git
+[submodule "base/src/pkgconf"]
+	path = base/src/pkgconf
+	url = https://github.com/pkgconf/pkgconf

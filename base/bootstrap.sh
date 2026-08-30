@@ -679,8 +679,13 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
-CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+# FIXME: Needs a similar MAKEINFO hack to GNU m4 because makeinfo isn't actually
+#        installed, and all it does is generate documentation, which is not
+#        crucial to the functionality of the application. Unlike GNU m4, I don't
+#        see GNU make going anywhere anytime soon, so this should actually get
+#        fixed at some point. ~ahill
+CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $JOBS MAKEINFO=true
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE MAKEINFO=true
 
 
 STEP "Build and install bc"
@@ -953,6 +958,34 @@ autoreconf -i
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --with-sysroot="$DIR_MAPLE"
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+
+
+STEP "Build and install pkgconf"
+# FIXME: This is probably the last pkgconf version to ship with autotools, which
+#        is great, but I need to convert the following instructions to
+mkdir -p $DIR_BUILD/build-pkgconf
+cd $DIR_BUILD/build-pkgconf
+# NOTE: Non-mutable source tree requires build script generation. ~ahill
+cp -r $DIR_SRC/pkgconf/. .
+./autogen.sh
+./configure \
+    --build=$(./config.guess) \
+    --host=$TARGET \
+    --enable-year2038 \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc \
+    --with-pkg-config-dir=/share/pkgconfig \
+    --with-sysroot="$DIR_MAPLE" \
+    --with-system-includedir=/share/include \
+    --with-system-libdir=/lib
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
