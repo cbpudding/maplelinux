@@ -720,6 +720,7 @@ patch -p1 < $DIR_PATCH/flex-malloc.patch
 # TODO: Is libfl needed? ~ahill
 ./configure \
     --build=$(./build-aux/config.guess) \
+    --disable-nls \
     --host=$TARGET \
     --includedir=/share/include \
     --libexecdir=/lib \
@@ -793,13 +794,14 @@ M4="/bin/m4" PERL="/bin/perl" ./configure \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
-make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+# NOTE: dist_man_MANS, INFO_DEPS, and pkgdata_DATA are overidden to prevent
+#       autoconf from generating documentation. ~ahill
+make -O -j $JOBS dist_man_MANS="" INFO_DEPS="" pkgdata_DATA=""
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" dist_man_MANS="" INFO_DEPS="" \
+    pkgdata_DATA=""
 
 
 STEP "Build and install automake"
-# FIXME: Point to /bin/perl for the interpreter instead of the host system's
-#        path. ~ahill
 mkdir -p $DIR_BUILD/build-automake
 cd $DIR_BUILD/build-automake
 # NOTE: Since there is no configure script, the project needs to be
@@ -819,8 +821,11 @@ M4="/bin/m4" PERL="/bin/perl" ./configure \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
-make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+# NOTE: dist_doc_DATA, INFO_DEPS, and man1_MANS are overidden to prevent
+#       automake from generating documentation. ~ahill
+make -O -j $JOBS dist_doc_DATA="" INFO_DEPS="" man1_MANS=""
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" dist_doc_DATA="" INFO_DEPS="" \
+    man1_MANS=""
 
 
 STEP "Build and install slibtool"
@@ -852,7 +857,7 @@ $DIR_SRC/slibtool/configure \
     --sysconfdir=/etc \
     --sysroot="$DIR_MAPLE"
 make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 ln -s slibtoolize $DIR_MAPLE/bin/libtoolize
 
 
@@ -1209,4 +1214,8 @@ $DIR_TOOLS/mapleconf \
     -r "$DIR_MAPLE" \
     -t "$DIR_MAPLE/share/mapleconf"
 [ -z "$PRESERVE_TOOLS" ] && rm -rf $DIR_MAPLE/maple
-#tar cJf ../base-$(date +%Y%m%d%H%M).txz *
+#tar \
+# --group 0 \
+# --numeric-owner \
+# --user 0 \
+# cJf ../base-$(date +%Y%m%d%H%M).txz *
