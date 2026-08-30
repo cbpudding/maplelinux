@@ -755,7 +755,7 @@ cp -r $DIR_SRC/perl-cross/. .
 #       always adds a "#define _GNU_SOURCE", but the Perl source code doesn't.
 #       As a result, compilation fails due to undefined functions. Manually
 #       passing -D_GNU_SOURCE fixes this. ~ahill
-CFLAGS="$CFLAGS -D_GNU_SOURCE" ./configure \
+CFLAGS="$CFLAGS -D_GNU_SOURCE" HOSTCFLAGS="$CFLAGS -D_GNU_SOURCE" ./configure \
     --build=$(./cnf/config.guess) \
     -Darchlib=/lib/perl5 \
     -Dbin=/bin \
@@ -770,7 +770,7 @@ CFLAGS="$CFLAGS -D_GNU_SOURCE" ./configure \
     --sysroot="$DIR_MAPLE" \
     --target=$TARGET
 make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Build and install autoconf"
