@@ -1,0 +1,25 @@
+diff -ruN vanilla/configure.ac maple/configure.ac
+--- vanilla/configure.ac	2026-08-30 15:21:51.844466520 -0400
++++ maple/configure.ac	2026-08-30 15:23:16.535303088 -0400
+@@ -40,10 +40,6 @@
+ AM_GNU_GETTEXT([external])
+ AM_GNU_GETTEXT_VERSION([0.18])
+ AC_PROG_YACC
+-AS_IF([test "$YACC" != 'bison -y'], [
+-	YACC="\${top_srcdir}/build-aux/missing bison -y"
+-	AC_MSG_NOTICE(no bison program found: only required for maintainers)
+-	])
+ AM_CONDITIONAL([HAVE_BISON], [test "$YACC" = 'bison -y'])
+ AM_PROG_LEX
+ AC_PROG_CC
+diff -ruN vanilla/src/flexdef.h maple/src/flexdef.h
+--- vanilla/src/flexdef.h	2026-08-30 15:21:51.838306733 -0400
++++ maple/src/flexdef.h	2026-08-30 15:44:32.672248175 -0400
+@@ -355,6 +355,7 @@
+  * trace_hex - use hexadecimal numbers in trace/debug outputs instead of octals
+  */
+ 
++extern int yylval; /* Is YYSTYPE always int? ~ahill */
+ extern int printstats, syntaxerror, eofseen, ddebug, trace, nowarn,
+ 	spprdflt;
+ extern int interactive, lex_compat, posix_compat, do_yylineno;

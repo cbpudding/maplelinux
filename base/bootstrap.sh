@@ -707,6 +707,11 @@ cd $DIR_BUILD/build-flex
 # NOTE: Copying the source tree to the build folder since there's no configure
 #       script available. ~ahill
 cp -r $DIR_SRC/flex/. .
+# NOTE: For some reason, flex throws a fit whenever a YACC other than "bison -y"
+#       is used. This patch removes that check to allow byacc to work. ~ahill
+# NOTE: In addition to that, I have added an extern for yylval since it ran into
+#       the same issue as the Linux kernel. ~ahill
+patch -p1 < $DIR_PATCH/flex-byacc.patch
 # NOTE: Flex 2.6.4 is almost a decade old, and 2.6.5 hasn't been released yet.
 #       Since modern compilers don't like definitions without arguments, this
 #       commit is being backported from upstream. ~ahill
@@ -725,8 +730,12 @@ patch -p1 < $DIR_PATCH/flex-malloc.patch
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --with-sysroot="$DIR_MAPLE"
-make -O -j $JOBS
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+# FIXME: dist_man_MANS and INFO_DEPS are passed here to prevent flex from
+#        building documentation, which requires help2man and makeinfo to build.
+#        This should probably be fixed at some point, because I don't see flex
+#        going anywhere. ~ahill
+make -O -j $JOBS dist_man_MANS="" INFO_DEPS=""
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" dist_man_MANS="" INFO_DEPS=""
 
 
 STEP "Build and install Perl"
