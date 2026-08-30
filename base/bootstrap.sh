@@ -530,6 +530,8 @@ chmod +x $DIR_MAPLE/bin/diff3
 $YACC -o expr.c $DIR_SRC/heirloom-toolchest/expr/expr.y
 $CC -Ilibcommon -static expr.c libcommon/libcommon.a -o $DIR_MAPLE/bin/expr
 cp $DIR_SRC/heirloom-toolchest/expr/expr.1 $DIR_MAPLE/share/man/man1/
+$CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/join/join.c \
+    libcommon/libcommon.a -o $DIR_MAPLE/bin/join
 $CC -Ilibcommon -static $DIR_SRC/heirloom-toolchest/sdiff/sdiff.c \
     libcommon/libcommon.a -o $DIR_MAPLE/bin/sdiff
 cp $DIR_SRC/heirloom-toolchest/sdiff/sdiff.1 $DIR_MAPLE/share/man/man1/
@@ -583,7 +585,10 @@ cp -r $DIR_SRC/awk/. .
 #       Outside of the selection of tools, CFLAGS is shared between CC and
 #       HOSTCC, which seems like a bad idea since I need to pass --sysroot.
 #       ~ahill
-make -O -j $JOBS CC="$CC -static --sysroot=$DIR_MAPLE" YACC="$YACC -d -b awkgram"
+# FIXME: This version of awk appears to have a race condition in the Makefile,
+#        so this package is built without -j as a workaround. I should
+#        investigate the cause and report this upstream. ~ahill
+make -O CC="$CC -static --sysroot=$DIR_MAPLE" YACC="$YACC -d -b awkgram"
 # NOTE: There's no make install target in this case, so I hope I'm doing this
 #       correctly. ~ahill
 cp a.out $DIR_MAPLE/bin/awk
@@ -625,6 +630,10 @@ cp -r $DIR_SRC/m4/. .
 # NOTE: The bootstrap script will attempt to pull the sources from the network,
 #       which is something I want to avoid. A pure bootstrap doesn't need to
 #       reach out to *any* server for *anything*. ~ahill
+# NOTE: help2man and makeinfo are considered "required", but they shouldn't be.
+#       The only reason they exist is to build documentation, which isn't a
+#       functional requirement of the application. ~ahill
+sed -i "/help2man/d;/makeinfo/d" bootstrap.conf
 ./bootstrap --gnulib-srcdir=$DIR_SRC/gnulib --skip-git --skip-po
 # NOTE: Once again, static and sysroot are not options here. ~ahill
 CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
@@ -638,8 +647,14 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
-CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+# NOTE: Ugly workaround for telling m4 that we really *don't* need to build the
+#       man pages for this. Make uses the timestamps of files to determine
+#       whether something needs to be rebuilt or not, so creating the files
+#       ahead of time avoids an attempt to build the documentation. ~ahill
+touch .version
+touch doc/m4.1
+CFLAGS="-static --sysroot=$DIR_MAPLE" make -O -j $JOBS MAKEINFO=true
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE MAKEINFO=true
 
 
 STEP "Build and install make"
@@ -965,12 +980,32 @@ $DIR_SRC/gcc/libstdc++-v3/configure \
     --sharedstatedir=/etc \
     --with-gcc-major-version-only \
     --with-gxx-include-dir=/share/include/c++/16
-make -O -j $(nproc)
-make -O -j $(nproc) install DESTDIR="$DIR_MAPLE"
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Clean libtool files since they are harmful for cross-compilation"
 find $DIR_MAPLE/lib -type f -name "*.la" -delete
+
+
+STEP "Build and install gperf"
+# NOTE: I added this for GNU m4, which is pending replacement with my fork of
+#       Quasar m4. ~ahill
+mkdir -p $DIR_BUILD/build-gperf
+cd $DIR_BUILD/build-gperf
+cp -r $DIR_SRC/gperf/. .
+GNULIB_SRCDIR="$DIR_SRC/gnulib" ./autogen.sh
+CFLAGS="$CFLAGS -static" CXXFLAGS="$CXXFLAGS -static" ./configure \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Build and install binutils"

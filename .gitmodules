@@ -115,3 +115,6 @@
 [submodule "base/src/gettext-tiny"]
 	path = base/src/gettext-tiny
 	url = https://github.com/sabotage-linux/gettext-tiny
+[submodule "base/src/gperf"]
+	path = base/src/gperf
+	url = https://https.git.savannah.gnu.org/git/gperf.git
