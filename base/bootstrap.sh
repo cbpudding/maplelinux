@@ -957,8 +957,9 @@ cp -r $DIR_SRC/mpfr/. .
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --with-sysroot="$DIR_MAPLE"
-make -O -j $JOBS
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+# NOTE: INFO_DEPS is passed here for the same reason as GMP. ~ahill
+make -O -j $JOBS INFO_DEPS=""
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INFO_DEPS=""
 
 
 STEP "Build and install MPC"
@@ -981,13 +982,15 @@ autoreconf -i
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --with-sysroot="$DIR_MAPLE"
-make -O -j $JOBS
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+# NOTE: INFO_DEPS is passed here for the same reason as GMP. ~ahill
+make -O -j $JOBS INFO_DEPS=""
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INFO_DEPS=""
 
 
 STEP "Build and install pkgconf"
 # FIXME: This is probably the last pkgconf version to ship with autotools, which
-#        is great, but I need to convert the following instructions to
+#        is great, but I need to convert the following instructions to muon for
+#        future upgrades. ~ahill
 mkdir -p $DIR_BUILD/build-pkgconf
 cd $DIR_BUILD/build-pkgconf
 # NOTE: Non-mutable source tree requires build script generation. ~ahill
@@ -1060,8 +1063,15 @@ CFLAGS="$CFLAGS -static" CXXFLAGS="$CXXFLAGS -static" ./configure \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
-make -O -j $JOBS
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+# NOTE: gperf is interesting because building documentation is part of its own
+#       Makefile in the doc subdirectory. A lot of this appears to be
+#       hand-written instead of generated, so the same autoconf workarounds
+#       don't apply here. Invoking the Makefiles under lib and src manually
+#       seems to do the trick, but it's important to build lib first, since it's
+#       a requirement for src. ~ahill
+make -C lib -O -j $JOBS
+make -C src -O -j $JOBS
+make -C src -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Build and install binutils"
@@ -1095,8 +1105,14 @@ patch -p1 < $DIR_PATCH/gdb-musl-compat.patch
     --with-gcc-major-version-only
 # NOTE: tooldir is manually set here to prevent binutils from creating a
 #       /$TARGET directory. ~ahill
-make -O -j $JOBS tooldir=""
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE" tooldir=""
+# NOTE: binutils requires texinfo to build documentation, with no way to disable
+#       documentation from the configure script. As a workaround, MAKEINFO is
+#       set to "true" so it runs the true command in its place, effectively
+#       disabling documentation. At some point, this approach will be
+#       re-considered, but it is not necessary for a successful bootstrap.
+#       ~ahill
+make -O -j $JOBS MAKEINFO=true tooldir=""
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" MAKEINFO=true tooldir=""
 
 
 STEP "Build and install gcc"
