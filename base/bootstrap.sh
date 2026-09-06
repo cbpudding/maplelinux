@@ -901,10 +901,18 @@ cd $DIR_BUILD/build-gmp
 # NOTE: GMP needs to be bootstrapped, so the source tree is copied to the build
 #       directory to keep the "immutable source tree" rule. ~ahill
 cp -r $DIR_SRC/gmp/. .
+# NOTE: GMP still uses AC_CHECK_LIBM, which doesn't exist with slibtool. Modern
+#       autoconf should use LT_LIB_M in its place. ~ahill
+sed -i "s/AC_CHECK_LIBM/LT_LIB_M/" configure.ac
 ./.bootstrap
 # NOTE: GMP's tests are ancient and the assumptions it makes cause modern
 #       compilers to choke. Passing -std=gnu99 tells it to use historical
 #       behaviors for the C compiler rather than modern behaviors. ~ahill
+# FIXME: --with-sysroot is an option, but it causes compilation issues with
+#        slibtool since it's basically calling LT_INIT twice: First with
+#        AC_PROG_LIBTOOL, and again with LT_INIT. This is probably worth an
+#        upstream report, but I don't know enough about the build system to
+#        properly report it. ~ahill
 CFLAGS="-std=gnu99" ./configure \
     --build=$(./config.guess) \
     --disable-static \
@@ -916,12 +924,14 @@ CFLAGS="-std=gnu99" ./configure \
     --prefix="" \
     --runstatedir=/tmp \
     --sbindir=/bin \
-    --sharedstatedir=/etc \
-    --with-sysroot="$DIR_MAPLE"
-make -O -j $JOBS
+    --sharedstatedir=/etc
+# NOTE: Yet another makeinfo dependency. I swear, you can't have *one* piece of
+#       GNU software without subscribing to their entire ecosystem... Passing
+#       INFO_DEPS="" to get it to stop complaining. ~ahill
+make -O -j $JOBS INFO_DEPS=""
 # NOTE: Silly GMP, $exec_prefix/include is not valid here. Use the normal
 #       include directory like a sane package. ~ahill
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includeexecdir=/share/include
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includeexecdir=/share/include INFO_DEPS=""
 
 
 STEP "Build and install MPFR"
