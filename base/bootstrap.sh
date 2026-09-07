@@ -47,18 +47,20 @@ mkdir -p $DIR_TOOLS
 
 
 STEP "Create the root hierarchy"
-mkdir -p $DIR_MAPLE/bin           # Executables (User-Executable Code)
-mkdir -p $DIR_MAPLE/boot          # Boot Partition
-mkdir -p $DIR_MAPLE/cache         # Retained Data
-mkdir -p $DIR_MAPLE/dev           # Linux Device Nodes
-mkdir -p $DIR_MAPLE/etc           # Persistent Data
-mkdir -p $DIR_MAPLE/home          # User Data
-mkdir -p $DIR_MAPLE/lib           # Libraries (Machine-Executable Code)
-mkdir -p $DIR_MAPLE/proc          # Linux Process Objects
-mkdir -p $DIR_MAPLE/share         # Immutable Data
-mkdir -p $DIR_MAPLE/share/include # C Header Files
-mkdir -p $DIR_MAPLE/sys           # Linux Kernel Objects
-mkdir -p $DIR_MAPLE/tmp           # Temporary Data
+mkdir -p $DIR_MAPLE/bin             # Executables (User-Executable Code)
+mkdir -p $DIR_MAPLE/boot            # Boot Partition
+mkdir -p $DIR_MAPLE/cache           # Retained Data
+mkdir -p $DIR_MAPLE/dev             # Linux Device Nodes
+mkdir -p $DIR_MAPLE/etc             # Persistent Data
+mkdir -p $DIR_MAPLE/home            # User Data
+mkdir -p $DIR_MAPLE/home/root       # root's Home
+mkdir -p $DIR_MAPLE/lib             # Libraries (Machine-Executable Code)
+mkdir -p $DIR_MAPLE/proc            # Linux Process Objects
+mkdir -p $DIR_MAPLE/share           # Immutable Data
+mkdir -p $DIR_MAPLE/share/include   # C Header Files
+mkdir -p $DIR_MAPLE/share/pkgconfig # pkgconf Files
+mkdir -p $DIR_MAPLE/sys             # Linux Kernel Objects
+mkdir -p $DIR_MAPLE/tmp             # Temporary Data
 
 
 STEP "Build the cross-linker/assembler"
@@ -179,13 +181,24 @@ STEP "Re-define the build environment to use the new tools"
 export AR="$TARGET-ar"
 export AS="$TARGET-as"
 export CC="$TARGET-gcc"
+export CFLAGS="-O2 -pipe"
 export CPP="$TARGET-cpp"
 export CXX="$TARGET-g++"
+export CXXFLAGS="-O2 -pipe"
+# NOTE: Some software derives its version information from git, which fails
+#       unless the directory is trusted. The following is a workaround to fix
+#       the issue without asking users to tweak their git configuration just for
+#       this project. Besides, the values will expire with the subshell. ~ahill
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0=safe.directory
+export GIT_CONFIG_VALUE_0='*'
 export LD="$TARGET-ld"
 export NM="$TARGET-nm"
 export OBJCOPY="$TARGET-objcopy"
 export OBJDUMP="$TARGET-objdump"
 export PATH="$DIR_TOOLS/bin:$PATH"
+export PKG_CONFIG_LIBDIR="$DIR_MAPLE/share/pkgconfig"
+export PKG_CONFIG_SYSROOT_DIR="$DIR_MAPLE"
 export RANLIB="$TARGET-ranlib"
 export STRIP="$TARGET-strip"
 
@@ -205,7 +218,7 @@ $DIR_SRC/musl/configure \
     --bindir=/bin \
     --includedir=/share/include \
     --libdir=/lib \
-    --prefix=/ \
+    --prefix="" \
     --target=$TARGET
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
@@ -244,6 +257,9 @@ cd $DIR_BUILD/build-netbsd-curses
 # NOTE: The Makefile doesn't support out-of-tree builds, so the source code is
 #       copied here to keep DIR_SRC immutable. ~ahill
 cp -r $DIR_SRC/netbsd-curses/. .
+# NOTE: netbsd-curses doesn't have a way to override the pkgconfig directory,
+#       so the Makefile has to be patched. ~ahill
+sed -i 's|$(DESTDIR)$(LIBDIR)/pkgconfig|$(DESTDIR)/share/pkgconfig|' GNUmakefile
 make -O -j $JOBS PREFIX=""
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INCDIR=/share/include PREFIX=""
 
@@ -324,12 +340,15 @@ cd $DIR_BUILD/build-skalibs
 # NOTE: Skalibs does not support out of tree builds, so we copy the tree here to
 #       keep $DIR_SRC immutable. ~ahill
 cp -r $DIR_SRC/skalibs/. .
-# TODO: Does Maple Linux need --enable-pkgconfig? ~ahill
+# NOTE: libdir is defined here because an empty prefix defaults to /usr/lib on
+#       skarnet projects. ~ahill
 ./configure \
     --disable-shared \
+    --enable-pkgconfig \
     --includedir=/share/include \
+    --libdir=/lib \
     --pkgconfdir=/share/pkgconfig \
-    --prefix=/ \
+    --prefix="" \
     --sysdepdir=/share/skalibs/sysdeps \
     --target=$TARGET \
     --with-sysdep-devurandom=yes \
@@ -345,13 +364,16 @@ cd $DIR_BUILD/build-mdevd
 # NOTE: mdevd does not support out of tree builds, so we copy the tree here to
 #       keep $DIR_SRC immutable. ~ahill
 cp -r $DIR_SRC/mdevd/. .
-# TODO: Does Maple Linux need --enable-pkgconfig? ~ahill
+# NOTE: libdir is defined here because an empty prefix defaults to /usr/lib on
+#       skarnet projects. ~ahill
 ./configure \
+    --enable-pkgconfig \
     --enable-static-libc \
     --includedir=/share/include \
+    --libdir=/lib \
     --libexecdir=/lib \
     --pkgconfdir=/share/pkgconfig \
-    --prefix=/ \
+    --prefix="" \
     --target=$TARGET \
     --with-lib=$DIR_MAPLE/lib \
     --with-sysdeps=$DIR_MAPLE/share/skalibs/sysdeps
@@ -369,7 +391,9 @@ $DIR_SRC/libz/configure \
     --prefix="" \
     --sharedlibdir=/lib
 make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
+#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install libelf"
@@ -414,7 +438,9 @@ sed -i 's/^\([[:space:]]*\)fi \\$/\1fi; \\/' Makefile.am
     --with-openssldir=/etc/ssl \
     --with-sysroot="$DIR_MAPLE"
 make -O -j $JOBS
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
+#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
 ln -s libressl "$DIR_MAPLE/bin/openssl"
 
 
@@ -434,13 +460,15 @@ cp "$DIR_PATCH/linux.$(echo $TARGET | cut -d"-" -f1).config" .config
 sed -i '/#include "parse.tab.h"/aextern YYSTYPE yylval;' scripts/genksyms/lex.l
 # NOTE: Linux's Makefile seems to ignore the environment's YACC variable, so it
 #       is manually defined here. ~ahill
-make -j $JOBS YACC=$YACC
+# NOTE: Linux uses pkgconf to build some host utilities, which *cannot* be
+#       cross-compiled. Unsetting PKG_CONFIG_* temporarily. ~ahill
+env -u PKG_CONFIG_LIBDIR -u PKG_CONFIG_SYSROOT_DIR make -j $JOBS YACC=$YACC
 make -j $JOBS modules_install INSTALL_MOD_PATH=$DIR_MAPLE
 cp $(make image_name) $DIR_MAPLE/boot/vmlinuz-$(make kernelrelease)
 cp System.map $DIR_MAPLE/boot/System.map-$(make kernelrelease)
 # NOTE: I have yet to test the following since I have only been testing on x86
 #       so far. ~ahill
-if make -q dtbs > /dev/null 2>&1; then
+if make -n dtbs > /dev/null 2>&1; then
     make -j $JOBS dtbs
     make -j $JOBS dtbs_install INSTALL_DTBS_PATH=$DIR_MAPLE
 fi
@@ -567,12 +595,14 @@ CFLAGS="--sysroot=$DIR_MAPLE" ./configure \
     --libexecdir=/lib \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
 CFLAGS="--sysroot=$DIR_MAPLE" make -O -j $JOBS
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE
+# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
+#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install awk"
@@ -607,7 +637,7 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" $DIR_SRC/byacc/configure \
     --libexecdir=/lib \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
@@ -643,7 +673,7 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
     --libexecdir=/lib \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
@@ -675,7 +705,7 @@ CFLAGS="-static --sysroot=$DIR_MAPLE" ./configure \
     --libexecdir=/lib \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
@@ -697,7 +727,10 @@ cd $DIR_BUILD/build-bc
 #       long options properly. Using short options and environment variables as
 #       a workaround. ~ahill
 CFLAGS="-static" INCLUDEDIR=/share/include PREFIX="" $DIR_SRC/bc/configure -Ni
-make -O -j $JOBS
+# NOTE: While bc claims to support out-of-tree builds, it still writes objects
+#       to DIR_SRC during the build, which is unacceptable. Setting GEN_DIR
+#       forces it to use the proper build directory. ~ahill
+make -O -j $JOBS GEN_DIR="$DIR_BUILD/build-bc/gen"
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
@@ -756,10 +789,13 @@ cp -r $DIR_SRC/perl-cross/. .
 #       always adds a "#define _GNU_SOURCE", but the Perl source code doesn't.
 #       As a result, compilation fails due to undefined functions. Manually
 #       passing -D_GNU_SOURCE fixes this. ~ahill
+# NOTE: Yes, perl-cross has --prefix, but passing an empty string to --prefix
+#       treats it as an unset variable. Passing -Dprefix="" in its place. ~ahill
 CFLAGS="$CFLAGS -D_GNU_SOURCE" HOSTCFLAGS="$CFLAGS -D_GNU_SOURCE" ./configure \
     --build=$(./cnf/config.guess) \
     -Darchlib=/lib/perl5 \
     -Dbin=/bin \
+    -Dprefix="" \
     -Dprivlib=/share/perl5 \
     -Dscriptdir=/bin \
     -Dusrinc=/share/include \
@@ -767,7 +803,6 @@ CFLAGS="$CFLAGS -D_GNU_SOURCE" HOSTCFLAGS="$CFLAGS -D_GNU_SOURCE" ./configure \
     --html3dir=/share/doc/perl/html/man3 \
     --man1dir=/share/man/man1 \
     --man3dir=/share/man/man3 \
-    --prefix=/ \
     --sysroot="$DIR_MAPLE" \
     --target=$TARGET
 make -O -j $JOBS
@@ -931,7 +966,10 @@ CFLAGS="-std=gnu99" ./configure \
 make -O -j $JOBS INFO_DEPS=""
 # NOTE: Silly GMP, $exec_prefix/include is not valid here. Use the normal
 #       include directory like a sane package. ~ahill
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includeexecdir=/share/include INFO_DEPS=""
+# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
+#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includeexecdir=/share/include \
+    INFO_DEPS="" pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install MPFR"
@@ -952,14 +990,17 @@ cp -r $DIR_SRC/mpfr/. .
     --libexecdir=/lib \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --with-sysroot="$DIR_MAPLE"
 # NOTE: INFO_DEPS is passed here for the same reason as GMP. ~ahill
 make -O -j $JOBS INFO_DEPS=""
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INFO_DEPS=""
+# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
+#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INFO_DEPS="" \
+    pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install MPC"
@@ -977,14 +1018,17 @@ autoreconf -i
     --libexecdir=/lib \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --with-sysroot="$DIR_MAPLE"
 # NOTE: INFO_DEPS is passed here for the same reason as GMP. ~ahill
 make -O -j $JOBS INFO_DEPS=""
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INFO_DEPS=""
+# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
+#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INFO_DEPS="" \
+    pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install pkgconf"
@@ -1013,9 +1057,106 @@ cp -r $DIR_SRC/pkgconf/. .
     --with-system-includedir=/share/include \
     --with-system-libdir=/lib
 make -O -j $JOBS
+# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
+#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
+ln -s pkgconf "$DIR_MAPLE/bin/pkg-config"
+
+
+STEP "Build and install tomlc17"
+mkdir -p $DIR_BUILD/build-tomlc17
+cd $DIR_BUILD/build-tomlc17
+# NOTE: The source tree needs to be copied to preserve source immutability.
+#       ~ahill
+cp -r $DIR_SRC/tomlc17/. .
+# NOTE: We don't need all of the library, and bootstrapping the other parts of
+#       the library gets messy with the bootstrap toolchain. ~ahill
+make -C src -O -j $JOBS
+cp src/libtomlc17.a $DIR_MAPLE/lib/
+cp src/tomlc17.h $DIR_MAPLE/share/include/
+cp src/tomlcpp.hpp $DIR_MAPLE/share/include/
+
+
+STEP "Build and install Lua"
+mkdir -p $DIR_BUILD/build-lua
+cd $DIR_BUILD/build-lua
+# NOTE: Lua is an old-school Makefile that doesn't support out of tree builds,
+#       so the source code is copied here to keep the source code immutable.
+#       ~ahill
+cp -r $DIR_SRC/lua/. .
+# NOTE: LUA_ROOT defaults to /usr/local, which is not what I want. ~ahill
+sed -i "/#define LUA_ROOT/s|/usr/local/|/|" luaconf.h
+# NOTE: Lua ignores the CC environment variable, so it's declared here. ~ahill
+# NOTE: Lua objects are built with -fPIC so it can be linked into a shared
+#       library later on. ~ahill
+# NOTE: LUA_USE_DLOPEN and LUA_USE_POSIX are defined individually instead of
+#       using LUA_USE_LINUX, since that will also try to link with readline in
+#       some cases. If readline becomes a requirement for something else, I may
+#       change this to make Lua nicer to use overall. ~ahill
+make -O -j $JOBS CC=$CC CFLAGS="-DLUA_USE_DLOPEN -DLUA_USE_POSIX -fPIC"
+# NOTE: Here's an ugly hack to build a shared library. ~ahill
+$CC -shared -fPIC -o $DIR_MAPLE/lib/liblua.so *.o -lm
+# NOTE: Lua's Makefile does not have an install target. Is this correct? ~ahill
+cp lauxlib.h $DIR_MAPLE/share/include/
+cp lua.h $DIR_MAPLE/share/include/
+cp luaconf.h $DIR_MAPLE/share/include/
+cp lualib.h $DIR_MAPLE/share/include/
+cp liblua.a $DIR_MAPLE/lib/
+cp lua $DIR_MAPLE/bin/
+# NOTE: For some reason, git doesn't have lua.hpp, so I made my own. ~ahill
+cp $DIR_PATCH/lua.hpp $DIR_MAPLE/share/include/
+# TODO: Is luac required? If so, how is it built? ~ahill
+
+
+STEP "Build and install mapleconf"
+$CC -o $DIR_MAPLE/bin/mapleconf \
+    --embed-dir="$DIR_MAPLE/share/lua/5.5" \
+    $DIR_SRC/mapleconf/mapleconf.c \
+    -llua -ltomlc17
+mkdir -p $DIR_MAPLE/share/mapleconf
+cp $DIR_BASE/maple.toml $DIR_MAPLE/etc/
+
+
+STEP "Install maplelinux-tools"
+# FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
+#        ~ahill
+cp "$DIR_SRC/maplelinux-tools/maple-chroot" "$DIR_MAPLE/bin/"
+
+
+STEP "Build and install kmod"
+# FIXME: Future releases of kmod will require Meson. This should be updated to
+#        use muon instead. ~ahill
+mkdir -p $DIR_BUILD/build-kmod
+cd $DIR_BUILD/build-kmod
+cp -r $DIR_SRC/kmod/. .
+# NOTE: Toybox's ln implementation doesn't support longopts, so the following
+#       patch allows it to work on Toybox *and* GNU Coreutils. ~ahill
+sed -i "s/--force --relative/-fr/" Makefile.am
+./autogen.sh
+./configure \
+    --disable-manpages \
+    --enable-year2038 \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc \
+    --with-bashcompletiondir="" \
+    --with-fishcompletiondir="" \
+    --with-openssl \
+    --with-pkgconfigdir=/share/pkgconfig \
+    --with-sysroot="$DIR_MAPLE" \
+    --with-xz \
+    --with-zlib \
+    --with-zshcompletiondir=/share/zsh/site-functions
+make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
+### Everything that doesn't require C++ should be before this step. ~ahill ###
 STEP "Build and install libstdc++"
 mkdir -p $DIR_BUILD/build-libstdc++
 cd $DIR_BUILD/build-libstdc++
@@ -1034,7 +1175,7 @@ $DIR_SRC/gcc/libstdc++-v3/configure \
     --libexecdir=/lib \
     --localstatedir=/etc \
     --oldincludedir=/share/include \
-    --prefix=/ \
+    --prefix="" \
     --sbindir=/bin \
     --sharedstatedir=/etc \
     --with-gcc-major-version-only \
@@ -1172,66 +1313,6 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 ln -s gcc $DIR_MAPLE/bin/cc
 
 
-STEP "Build and install tomlc17"
-mkdir -p $DIR_BUILD/build-tomlc17
-cd $DIR_BUILD/build-tomlc17
-# NOTE: The source tree needs to be copied to preserve source immutability.
-#       ~ahill
-cp -r $DIR_SRC/tomlc17/. .
-# NOTE: We don't need all of the library, and bootstrapping the other parts of
-#       the library gets messy with the bootstrap toolchain. ~ahill
-make -C src -O -j $JOBS
-cp src/libtomlc17.a $DIR_MAPLE/lib/
-cp src/tomlc17.h $DIR_MAPLE/share/include/
-cp src/tomlcpp.hpp $DIR_MAPLE/share/include/
-
-
-STEP "Build and install Lua"
-mkdir -p $DIR_BUILD/build-lua
-cd $DIR_BUILD/build-lua
-# NOTE: Lua is an old-school Makefile that doesn't support out of tree builds,
-#       so the source code is copied here to keep the source code immutable.
-#       ~ahill
-cp -r $DIR_SRC/lua/. .
-# NOTE: LUA_ROOT defaults to /usr/local, which is not what I want. ~ahill
-sed -i "/#define LUA_ROOT/s|/usr/local/|/|" luaconf.h
-# NOTE: Lua ignores the CC environment variable, so it's declared here. ~ahill
-# NOTE: Lua objects are built with -fPIC so it can be linked into a shared
-#       library later on. ~ahill
-# NOTE: LUA_USE_DLOPEN and LUA_USE_POSIX are defined individually instead of
-#       using LUA_USE_LINUX, since that will also try to link with readline in
-#       some cases. If readline becomes a requirement for something else, I may
-#       change this to make Lua nicer to use overall. ~ahill
-make -O -j $JOBS CC=$CC CFLAGS="-DLUA_USE_DLOPEN -DLUA_USE_POSIX -fPIC"
-# NOTE: Here's an ugly hack to build a shared library. ~ahill
-$CC -shared -fPIC -o $DIR_MAPLE/lib/liblua.so *.o -lm
-# NOTE: Lua's Makefile does not have an install target. Is this correct? ~ahill
-cp lauxlib.h $DIR_MAPLE/share/include/
-cp lua.h $DIR_MAPLE/share/include/
-cp luaconf.h $DIR_MAPLE/share/include/
-cp lualib.h $DIR_MAPLE/share/include/
-cp liblua.a $DIR_MAPLE/lib/
-cp lua $DIR_MAPLE/bin/
-# NOTE: For some reason, git doesn't have lua.hpp, so I made my own. ~ahill
-cp $DIR_PATCH/lua.hpp $DIR_MAPLE/share/include/
-# TODO: Is luac required? If so, how is it built? ~ahill
-
-
-STEP "Build and install mapleconf"
-$CC -o $DIR_MAPLE/bin/mapleconf \
-    --embed-dir="$DIR_MAPLE/share/lua/5.5" \
-    $DIR_SRC/mapleconf/mapleconf.c \
-    -llua -ltomlc17
-mkdir -p $DIR_MAPLE/share/mapleconf
-cp $DIR_BASE/maple.toml $DIR_MAPLE/etc/
-
-
-STEP "Install maplelinux-tools"
-# FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
-#        ~ahill
-cp "$DIR_SRC/maplelinux-tools/maple-chroot" "$DIR_MAPLE/bin/"
-
-
 STEP "Prepare the image"
 cd $DIR_MAPLE
 cp -r $DIR_BASE/overlay/. $DIR_MAPLE/
@@ -1240,8 +1321,9 @@ $DIR_TOOLS/mapleconf \
     -r "$DIR_MAPLE" \
     -t "$DIR_MAPLE/share/mapleconf"
 [ -z "$PRESERVE_TOOLS" ] && rm -rf $DIR_MAPLE/maple
-#tar \
-# --group 0 \
-# --numeric-owner \
-# --user 0 \
-# cJf ../base-$(date +%Y%m%d%H%M).txz *
+if [ -n "$ARCHIVE_SYSROOT" ]; then tar \
+    --group 0 \
+    --numeric-owner \
+    --user 0 \
+    cJf ../maple-$(echo $TARGET | cut -d"-" -f1)-base-$(date +%Y%m%d%H%M).txz *
+fi

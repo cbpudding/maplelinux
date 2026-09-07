@@ -121,3 +121,6 @@
 [submodule "base/src/pkgconf"]
 	path = base/src/pkgconf
 	url = https://github.com/pkgconf/pkgconf
+[submodule "base/src/kmod"]
+	path = base/src/kmod
+	url = https://github.com/kmod-project/kmod
