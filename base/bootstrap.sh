@@ -331,7 +331,9 @@ cp bin/shutdown $DIR_MAPLE/bin/
 mkdir -p $DIR_MAPLE/lib/hummingbird
 cp $DIR_SRC/hummingbird/usr/lib/hummingbird/* $DIR_MAPLE/lib/hummingbird/
 # TODO: Should this be re-run on first boot? ~ahill
-dd bs=512 count=1 if=/dev/urandom of=$DIR_MAPLE/etc/random.seed status=none
+mkdir -p $DIR_MAPLE/etc/hummingbird
+dd bs=512 count=1 if=/dev/urandom of=$DIR_MAPLE/etc/hummingbird/random.seed \
+    status=none
 
 
 STEP "Build and install skalibs"
@@ -1251,6 +1253,8 @@ TOOLCHAIN_FOR_TARGET="$TARGET-" ./configure \
     --sharedstatedir=/etc
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+mkdir -p "$DIR_MAPLE/boot/EFI/BOOT"
+cp "$DIR_MAPLE/share/limine/BOOTX64.EFI" "$DIR_MAPLE/boot/EFI/BOOT/"
 
 
 STEP "Install maplelinux-tools"

@@ -1,7 +1,7 @@
 diff -ruN vanilla/src/init.c maple/src/init.c
---- vanilla/src/init.c	2026-07-01 20:42:56.803673611 -0400
-+++ maple/src/init.c	2026-07-01 20:44:35.670305490 -0400
-@@ -22,28 +22,28 @@
+--- vanilla/src/init.c	Mon Sep  7 18:32:33 2026
++++ maple/src/init.c	Mon Sep  7 18:43:02 2026
+@@ -22,28 +22,27 @@
  
  void boot_system() {
      mount_pseudo_filesystems();
@@ -26,19 +26,18 @@ diff -ruN vanilla/src/init.c maple/src/init.c
 -    mount("dev",  "/dev",  "devtmpfs", MS_NOSUID,                 "mode=0755");
 +    mount("proc",  "/proc", "proc",     MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL);
 +    mount("sys",   "/sys",  "sysfs",    MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL);
-+    mount("tmpfs", "/tmp",  "tmpfs",    MS_NOSUID | MS_NODEV,      "mode=0755");
-+    mount("dev",   "/dev",  "devtmpfs", MS_NOSUID,                 "mode=0755");
++    mount("tmpfs", "/tmp",  "tmpfs",    MS_NOSUID | MS_NODEV,      "mode=1777");
  }
  
  static void seed_rng_device() {
      void *seed;
      struct stat status;
 -    int fd = open("/usr/lib/hummingbird/random.seed", O_RDONLY);
-+    int fd = open("/etc/random.seed", O_RDONLY);
++    int fd = open("/etc/hummingbird/random.seed", O_RDONLY);
  
      if (fd < 0 || fstat(fd, &status) < 0)
          return;
-@@ -67,11 +67,11 @@
+@@ -67,11 +66,11 @@
  static void set_hostname() {
      struct stat status;
      void *mapped_file = MAP_FAILED;
@@ -53,8 +52,8 @@ diff -ruN vanilla/src/init.c maple/src/init.c
          mapped_file = mmap(0, status.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
  
 diff -ruN vanilla/src/shutdown.c maple/src/shutdown.c
---- vanilla/src/shutdown.c	2026-07-01 20:42:56.803673611 -0400
-+++ maple/src/shutdown.c	2026-07-01 20:45:19.795303591 -0400
+--- vanilla/src/shutdown.c	Mon Sep  7 18:32:33 2026
++++ maple/src/shutdown.c	Mon Sep  7 18:43:47 2026
 @@ -13,12 +13,10 @@
  #include "shutdown.h"
  
@@ -107,7 +106,7 @@ diff -ruN vanilla/src/shutdown.c maple/src/shutdown.c
      }
  
 -    int fd = open("/usr/lib/hummingbird/random.seed", O_WRONLY | O_CREAT, 0600);
-+    int fd = open("/etc/random.seed", O_WRONLY | O_CREAT, 0600);
++    int fd = open("/etc/hummingbird/random.seed", O_WRONLY | O_CREAT, 0600);
  
      if (fd < 0)
          return;
