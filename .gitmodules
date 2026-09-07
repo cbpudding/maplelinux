@@ -124,3 +124,6 @@
 [submodule "base/src/kmod"]
 	path = base/src/kmod
 	url = https://github.com/kmod-project/kmod
+[submodule "base/src/e2fsprogs"]
+	path = base/src/e2fsprogs
+	url = https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git

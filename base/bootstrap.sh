@@ -1156,6 +1156,30 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
+STEP "Build and install e2fsprogs"
+mkdir -p $DIR_BUILD/build-e2fsprogs
+cd $DIR_BUILD/build-e2fsprogs
+$DIR_SRC/e2fsprogs/configure \
+    --build=$($DIR_SRC/e2fsprogs/config/config.guess) \
+    --enable-fsck \
+    --enable-hardening \
+    --enable-libblkid \
+    --enable-libuuid \
+    --enable-symlink-install \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+
+
 ### Everything that doesn't require C++ should be before this step. ~ahill ###
 STEP "Build and install libstdc++"
 mkdir -p $DIR_BUILD/build-libstdc++
