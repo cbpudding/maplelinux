@@ -1257,6 +1257,22 @@ mkdir -p "$DIR_MAPLE/boot/EFI/BOOT"
 cp "$DIR_MAPLE/share/limine/BOOTX64.EFI" "$DIR_MAPLE/boot/EFI/BOOT/"
 
 
+STEP "Build and install ubase"
+mkdir -p $DIR_BUILD/build-ubase
+cd $DIR_BUILD/build-ubase
+cp -r $DIR_SRC/ubase/. .
+# NOTE: I don't need everything from ubase since Toybox already provides quite a
+#       bit. Only building the executables that are missing. ~ahill
+make -O -j $JOBS AR="$AR" BIN="getty mesg pagesize respawn swaplabel vtallow" \
+    CC="$CC" CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS -static" RANLIB="$RANLIB"
+cp getty "$DIR_MAPLE/bin/"
+cp mesg "$DIR_MAPLE/bin/"
+cp pagesize "$DIR_MAPLE/bin/"
+cp respawn "$DIR_MAPLE/bin/"
+cp swaplabel "$DIR_MAPLE/bin/"
+cp vtallow "$DIR_MAPLE/bin/"
+
+
 STEP "Install maplelinux-tools"
 # FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
 #        ~ahill

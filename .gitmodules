@@ -160,3 +160,6 @@
 [submodule "base/src/libfdt"]
 	path = base/src/libfdt
 	url = https://github.com/osdev0/libfdt
+[submodule "base/src/ubase"]
+	path = base/src/ubase
+	url = https://git.suckless.org/ubase
