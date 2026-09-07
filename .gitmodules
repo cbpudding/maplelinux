@@ -127,3 +127,6 @@
 [submodule "base/src/e2fsprogs"]
 	path = base/src/e2fsprogs
 	url = https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git
+[submodule "base/src/kilo"]
+	path = base/src/kilo
+	url = https://github.com/antirez/kilo

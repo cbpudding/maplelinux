@@ -1117,12 +1117,6 @@ mkdir -p $DIR_MAPLE/share/mapleconf
 cp $DIR_BASE/maple.toml $DIR_MAPLE/etc/
 
 
-STEP "Install maplelinux-tools"
-# FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
-#        ~ahill
-cp "$DIR_SRC/maplelinux-tools/maple-chroot" "$DIR_MAPLE/bin/"
-
-
 STEP "Build and install kmod"
 # FIXME: Future releases of kmod will require Meson. This should be updated to
 #        use muon instead. ~ahill
@@ -1180,7 +1174,20 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
-### Everything that doesn't require C++ should be before this step. ~ahill ###
+STEP "Build and install kilo"
+# NOTE: Why the heck can't all software be this simple to build? ~ahill
+$CC -o "$DIR_MAPLE/bin/kilo" "$DIR_SRC/kilo/kilo.c" -pedantic -static -std=c99
+
+
+STEP "Install maplelinux-tools"
+# FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
+#        ~ahill
+cp "$DIR_SRC/maplelinux-tools/maple-chroot" "$DIR_MAPLE/bin/"
+
+
+##########################################################################
+# Everything that doesn't require C++ should be before this step. ~ahill #
+##########################################################################
 STEP "Build and install libstdc++"
 mkdir -p $DIR_BUILD/build-libstdc++
 cd $DIR_BUILD/build-libstdc++
