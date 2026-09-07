@@ -1179,6 +1179,80 @@ STEP "Build and install kilo"
 $CC -o "$DIR_MAPLE/bin/kilo" "$DIR_SRC/kilo/kilo.c" -pedantic -static -std=c99
 
 
+STEP "Build and install nasm"
+mkdir -p $DIR_BUILD/build-nasm
+cd $DIR_BUILD/build-nasm
+# NOTE: Yet another autotools build without a committed configure script. ~ahill
+cp -r $DIR_SRC/nasm/. .
+./autogen.sh
+# NOTE: sh is manually invoked here because this verison of config.guess uses
+#       /usr/bin/sh as the interpreter. What cursed system would put a critical
+#       program like sh under /usr/bin? ~ahill
+./configure \
+    --build=$(sh ./autoconf/helpers/config.guess) \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+# NOTE: make install is broken from a git checkout, so the two executables are
+#       manually copied to /bin as a workaround. ~ahill
+cp nasm "$DIR_MAPLE/bin/"
+cp ndisasm "$DIR_MAPLE/bin/"
+
+
+STEP "Build and install Limine"
+mkdir -p $DIR_BUILD/build-limine
+cd $DIR_BUILD/build-limine
+# NOTE: Limine requires a bootstrap that requires network access to git clone,
+#       which is not what I want to do here. ~ahill
+cp -r $DIR_SRC/limine/. .
+cp -r $DIR_SRC/cc-runtime .
+cp -r $DIR_SRC/flanterm .
+cp -r $DIR_SRC/freestanding-c-hdrs .
+cp -r $DIR_SRC/libfdt .
+cp -r $DIR_SRC/limine-protocol .
+cp -r $DIR_SRC/pdgzip .
+cp -r $DIR_SRC/picoefi .
+cp -r $DIR_SRC/stbi-hardened .
+cp cc-runtime/src/cc-runtime.c common/cc-runtime.s2.c
+cp pdgzip/pdgzip.c common/compress/pdgzip.c
+cp pdgzip/pdgzip.h common/compress/pdgzip.h
+cp stbi-hardened/include/stb_image.h common/lib/stb_image.h
+patch -p0 < common/stb_image.patch
+rm -f common/lib/stb_image.h.orig
+autoreconf -fvi -Wall
+echo "REGEN_DATE=\"$(git log -1 --pretty=%cd --date="format:%B %Y")\"" \
+    > timestamps
+echo "SOURCE_DATE_EPOCH=\"$(git log -1 --pretty=%ct)\"" >> timestamps
+echo "SOURCE_DATE_EPOCH_TOUCH=\"$(git log -1 --pretty=%cI |
+    head -c 16 |
+    sed "s/[-T:]//g")\"" >> timestamps
+# NOTE: Limine assumes an LLVM toolchain is present when cross-compiling, so
+#       TOOLCHAIN_FOR_TARGET is set to use the GNU toolchain. ~ahill
+TOOLCHAIN_FOR_TARGET="$TARGET-" ./configure \
+    --build=$(./build-aux/config.guess) \
+    --disable-all \
+    --enable-uefi-x86-64 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+
+
 STEP "Install maplelinux-tools"
 # FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
 #        ~ahill

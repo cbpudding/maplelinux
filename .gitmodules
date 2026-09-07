@@ -130,3 +130,33 @@
 [submodule "base/src/kilo"]
 	path = base/src/kilo
 	url = https://github.com/antirez/kilo
+[submodule "base/src/limine"]
+	path = base/src/limine
+	url = https://github.com/limine-bootloader/limine
+[submodule "base/src/nasm"]
+	path = base/src/nasm
+	url = https://github.com/netwide-assembler/nasm
+[submodule "base/src/freestanding-c-hdrs"]
+	path = base/src/freestanding-c-hdrs
+	url = https://github.com/osdev0/freestanding-c-hdrs
+[submodule "base/src/cc-runtime"]
+	path = base/src/cc-runtime
+	url = https://github.com/osdev0/cc-runtime
+[submodule "base/src/pdgzip"]
+	path = base/src/pdgzip
+	url = https://github.com/iczelia/pdgzip
+[submodule "base/src/limine-protocol"]
+	path = base/src/limine-protocol
+	url = https://github.com/Limine-Bootloader/limine-protocol
+[submodule "base/src/picoefi"]
+	path = base/src/picoefi
+	url = https://github.com/PicoEFI/PicoEFI
+[submodule "base/src/flanterm"]
+	path = base/src/flanterm
+	url = https://github.com/Mintsuki/Flanterm
+[submodule "base/src/stbi-hardened"]
+	path = base/src/stbi-hardened
+	url = https://github.com/Mintsuki/stbi-hardened
+[submodule "base/src/libfdt"]
+	path = base/src/libfdt
+	url = https://github.com/osdev0/libfdt
