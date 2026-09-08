@@ -1,2 +1,12 @@
 # This is the default configuration for Maple Linux. Values set here can be
 # overwritten by /etc/maple.toml. ~ahill
+
+[bootloader]
+cmdline = ["quiet"]
+timeout = 3
+
+[system]
+hostname = "maple"
+nameservers = ["1.1.1.1", "1.0.0.1"]
+timeservers = ["pool.ntp.org"]
+timezone = "Etc/UTC"

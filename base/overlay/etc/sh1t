@@ -1,0 +1,3 @@
+# SHell from pid 1's Terminal. :)
+echo "Something's not right... Can you take a look?"
+PS1="rescue% "

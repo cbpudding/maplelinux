@@ -1,0 +1,4 @@
+#!/bin/sh
+printf '\e[1;33mWelcome to Maple Linux!\e[0m\n'
+sysctl -p
+mdevd -C &

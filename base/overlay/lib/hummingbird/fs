@@ -1,0 +1,16 @@
+#!/bin/sh
+while :; do
+    fsck -A -p
+    case "$?" in
+        0|1) break ;;
+        2|3) reboot; exit 1 ;;
+        *)   ENV=/etc/sh1t sh ;;
+    esac
+done
+
+mount -o remount,rw /
+mkdir -p /dev/pts /dev/shm
+mount -t devpts -o gid=5,mode=620,noexec,nosuid devpts /dev/pts
+mount -t tmpfs -o nodev,nosuid,mode=1777 tmpfs /dev/shm
+mount -a
+swapon -a

@@ -1,0 +1,2 @@
+{% for fs in filesystem %}{{ fs.device }} {{ fs.path }} {{ fs.type }} {{ fs.options | join: "," }} 0 {% if fs.check == false %}0{% elsif fs.path == "/" %}1{% else %}2{% endif %}
+{% endfor %}

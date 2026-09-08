@@ -329,7 +329,6 @@ ln -s hummingbird $DIR_MAPLE/bin/init
 cp bin/reboot $DIR_MAPLE/bin/
 cp bin/shutdown $DIR_MAPLE/bin/
 mkdir -p $DIR_MAPLE/lib/hummingbird
-cp $DIR_SRC/hummingbird/usr/lib/hummingbird/* $DIR_MAPLE/lib/hummingbird/
 # TODO: Should this be re-run on first boot? ~ahill
 mkdir -p $DIR_MAPLE/etc/hummingbird
 dd bs=512 count=1 if=/dev/urandom of=$DIR_MAPLE/etc/hummingbird/random.seed \
