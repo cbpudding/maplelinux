@@ -327,7 +327,9 @@ $CC $CFLAGS -static \
 cp hummingbird $DIR_MAPLE/bin/
 ln -s hummingbird $DIR_MAPLE/bin/init
 cp bin/reboot $DIR_MAPLE/bin/
+chmod +x $DIR_MAPLE/bin/reboot
 cp bin/shutdown $DIR_MAPLE/bin/
+chmod +x $DIR_MAPLE/bin/shutdown
 mkdir -p $DIR_MAPLE/lib/hummingbird
 # TODO: Should this be re-run on first boot? ~ahill
 mkdir -p $DIR_MAPLE/etc/hummingbird

@@ -2,7 +2,7 @@
 # overwritten by /etc/maple.toml. ~ahill
 
 [bootloader]
-cmdline = ["quiet"]
+cmdline = ["rootwait", "quiet"]
 timeout = 3
 
 [system]
