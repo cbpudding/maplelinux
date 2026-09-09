@@ -163,3 +163,6 @@
 [submodule "base/src/ubase"]
 	path = base/src/ubase
 	url = https://git.suckless.org/ubase
+[submodule "base/src/dosfstools"]
+	path = base/src/dosfstools
+	url = https://github.com/dosfstools/dosfstools

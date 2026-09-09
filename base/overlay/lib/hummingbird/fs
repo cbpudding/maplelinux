@@ -1,4 +1,10 @@
 #!/bin/sh
+mkfifo /tmp/mdevd.ready
+mdevd -D 3 -O 2 3>/tmp/mdevd.ready &
+read _ < /tmp/mdevd.ready
+rm -f /tmp/mdevd.ready
+mdevd-coldplug -O 2
+
 while :; do
     fsck -A -p
     case "$?" in

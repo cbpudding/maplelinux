@@ -1264,13 +1264,16 @@ cd $DIR_BUILD/build-ubase
 cp -r $DIR_SRC/ubase/. .
 # NOTE: I don't need everything from ubase since Toybox already provides quite a
 #       bit. Only building the executables that are missing. ~ahill
-make -O -j $JOBS AR="$AR" BIN="getty mesg pagesize respawn swaplabel vtallow" \
+make -O -j $JOBS AR="$AR" \
+    BIN="getty mesg pagesize respawn swaplabel swapoff swapon vtallow" \
     CC="$CC" CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS -static" RANLIB="$RANLIB"
 cp getty "$DIR_MAPLE/bin/"
 cp mesg "$DIR_MAPLE/bin/"
 cp pagesize "$DIR_MAPLE/bin/"
 cp respawn "$DIR_MAPLE/bin/"
 cp swaplabel "$DIR_MAPLE/bin/"
+cp swapoff "$DIR_MAPLE/bin/"
+cp swapon "$DIR_MAPLE/bin/"
 cp vtallow "$DIR_MAPLE/bin/"
 
 
