@@ -177,6 +177,14 @@ $CC -o "$DIR_TOOLS/mapleconf" \
     -llua
 
 
+STEP "Build and install tz"
+mkdir -p $DIR_BUILD/build-tz
+cd $DIR_BUILD/build-tz
+# NOTE: tz doesn't support out of tree builds. ~ahill
+cp -r $DIR_SRC/tz/. .
+make posix_only DESTDIR="$DIR_MAPLE" USRDIR="" USRSHAREDIR=share ZFLAGS="-b slim"
+
+
 STEP "Re-define the build environment to use the new tools"
 export AR="$TARGET-ar"
 export AS="$TARGET-as"

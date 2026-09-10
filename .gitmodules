@@ -166,3 +166,6 @@
 [submodule "base/src/dosfstools"]
 	path = base/src/dosfstools
 	url = https://github.com/dosfstools/dosfstools
+[submodule "base/src/tz"]
+	path = base/src/tz
+	url = https://github.com/eggert/tz
