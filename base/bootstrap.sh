@@ -1277,6 +1277,32 @@ cp swapon "$DIR_MAPLE/bin/"
 cp vtallow "$DIR_MAPLE/bin/"
 
 
+STEP "Build and install dosfstools"
+mkdir -p $DIR_BUILD/build-dosfstools
+cd $DIR_BUILD/build-dosfstools
+# NOTE: Another source tree that requires a bootstrap. ~ahill
+cp -r $DIR_SRC/dosfstools/. .
+# TODO: Maple Linux can't provide config.rpath, so a simple file is created as a
+#       workaround. Is this actually enough to let it build properly or will it
+#       cause issues later on? ~ahill
+touch config.rpath
+./autogen.sh
+./configure \
+    --build=$(./config.guess) \
+    --enable-compat-symlinks \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+
+
 STEP "Install maplelinux-tools"
 # FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
 #        ~ahill
