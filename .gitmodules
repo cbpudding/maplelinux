@@ -169,3 +169,12 @@
 [submodule "base/src/tz"]
 	path = base/src/tz
 	url = https://github.com/eggert/tz
+[submodule "base/src/netbsd-gpt"]
+	path = base/src/netbsd-gpt
+	url = https://git.hackportland.club/ahill/netbsd-gpt
+[submodule "base/src/libbsd"]
+	path = base/src/libbsd
+	url = https://gitlab.freedesktop.org/libbsd/libbsd
+[submodule "base/src/libmd"]
+	path = base/src/libmd
+	url = https://gitlab.freedesktop.org/libbsd/libmd

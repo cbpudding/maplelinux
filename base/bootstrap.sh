@@ -1182,7 +1182,7 @@ $DIR_SRC/e2fsprogs/configure \
     --sbindir=/bin \
     --sharedstatedir=/etc
 make -O -j $JOBS
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install kilo"
@@ -1309,6 +1309,67 @@ touch config.rpath
     --sharedstatedir=/etc
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+
+
+STEP "Build and install libmd"
+mkdir -p $DIR_BUILD/build-libmd
+cd $DIR_BUILD/build-libmd
+# NOTE: Needs to be bootstrapped, so the source is copied here. ~ahill
+cp -r $DIR_SRC/libmd/. .
+# NOTE: To the upstream developers: .git is not guaranteed to be a directory!
+#       Case and point: Submodules. ~ahill
+sed -i "s/\[ -d .git \]/[ -e .git ]/" get-version
+./autogen
+./configure \
+    --build=$(./build-aux/config.guess) \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
+
+
+STEP "Build and install libbsd"
+mkdir -p $DIR_BUILD/build-libbsd
+cd $DIR_BUILD/build-libbsd
+# NOTE: Needs to be bootstrapped, so the source is copied here. ~ahill
+cp -r $DIR_SRC/libbsd/. .
+# NOTE: To the upstream developers: .git is not guaranteed to be a directory!
+#       Case and point: Submodules. ~ahill
+sed -i "s/\[ -d .git \]/[ -e .git ]/" get-version
+./autogen
+./configure \
+    --build=$(./build-aux/config.guess) \
+    --enable-year2038 \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
+
+
+STEP "Build and install netbsd-gpt"
+mkdir -p $DIR_BUILD/build-netbsd-gpt
+cd $DIR_BUILD/build-netbsd-gpt
+# NOTE: Old-school Makefile. Copying the source to the build directory. ~ahill
+cp -r $DIR_SRC/netbsd-gpt/. .
+# NOTE: Building netbsd-gpt with libbsd in overlay mode because it's a very raw
+#       port of NetBSD's code. ~ahill
+make -O -j $JOBS INCLUDEDIR="$DIR_MAPLE/share/include" LDFLAGS=-static
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" MANDIR=/share/man SBINDIR=/bin
 
 
 STEP "Install maplelinux-tools"
