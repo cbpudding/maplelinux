@@ -1314,7 +1314,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 STEP "Install maplelinux-tools"
 # FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
 #        ~ahill
-cp "$DIR_SRC/maplelinux-tools/maple-chroot" "$DIR_MAPLE/bin/"
+cp -r "$DIR_SRC/maplelinux-tools/." "$DIR_MAPLE/bin/"
 
 
 ##########################################################################

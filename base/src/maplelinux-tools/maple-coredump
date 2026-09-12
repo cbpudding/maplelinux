@@ -1,0 +1,7 @@
+#!/bin/sh
+pid=$1
+timestamp=$(/bin/date -d @"$2" +%Y%m%d%H%M%S)
+bin=$(/bin/readlink "/proc/$pid/exe")
+read name < "/proc/$pid/comm"
+mkdir -p /cache/crash
+exec /bin/xz -c > "/cache/crash/${bin##*/}-$(printf "%s" "$name" | /bin/sed "s|/|_|g")-$pid-$timestamp.core.xz"
