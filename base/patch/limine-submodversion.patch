@@ -1,0 +1,12 @@
+diff -ruN vanilla/version.sh maple/version.sh
+--- vanilla/version.sh	2026-09-12 20:05:39.943894164 -0400
++++ maple/version.sh	2026-09-12 20:06:14.332200704 -0400
+@@ -13,7 +13,7 @@
+     exit 0
+ fi
+ 
+-if ! test -d .git || ! git log -n1 --pretty='%h' >/dev/null 2>&1; then
++if ! test -e .git || ! git log -n1 --pretty='%h' >/dev/null 2>&1; then
+     printf 'UNVERSIONED'
+     exit 0
+ fi

@@ -1,6 +1,6 @@
 diff -ruN vanilla/src/init.c maple/src/init.c
---- vanilla/src/init.c	Mon Sep  7 18:32:33 2026
-+++ maple/src/init.c	Mon Sep  7 18:43:02 2026
+--- vanilla/src/init.c	2026-09-12 19:52:40.192914464 -0400
++++ maple/src/init.c	2026-09-12 19:53:59.387224534 -0400
 @@ -22,28 +22,27 @@
  
  void boot_system() {
@@ -51,9 +51,16 @@ diff -ruN vanilla/src/init.c maple/src/init.c
      else {
          mapped_file = mmap(0, status.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
  
+@@ -96,5 +95,6 @@
+ 
+ void drop_to_emergency_shell() {
+     fputs("Init failed, dropping into emergency root shell.", stderr);
++    setenv("ENV", "/etc/sh1t", 1);
+     execute("/bin/sh");
+ }
 diff -ruN vanilla/src/shutdown.c maple/src/shutdown.c
---- vanilla/src/shutdown.c	Mon Sep  7 18:32:33 2026
-+++ maple/src/shutdown.c	Mon Sep  7 18:43:47 2026
+--- vanilla/src/shutdown.c	2026-09-12 19:52:40.192914464 -0400
++++ maple/src/shutdown.c	2026-09-12 19:52:50.884084646 -0400
 @@ -13,12 +13,10 @@
  #include "shutdown.h"
  

@@ -1245,6 +1245,10 @@ echo "SOURCE_DATE_EPOCH=\"$(git log -1 --pretty=%ct)\"" >> timestamps
 echo "SOURCE_DATE_EPOCH_TOUCH=\"$(git log -1 --pretty=%cI |
     head -c 16 |
     sed "s/[-T:]//g")\"" >> timestamps
+# NOTE: Limine has a bug where it is unable to get the current version from git
+#       because .git is a file instead of a directory, which is normal for a
+#       submodule. As a result, Limine shows UNVERSIONED at boot. ~ahill
+patch -p1 < $DIR_PATCH/limine-submodversion.patch
 # NOTE: Limine assumes an LLVM toolchain is present when cross-compiling, so
 #       TOOLCHAIN_FOR_TARGET is set to use the GNU toolchain. ~ahill
 TOOLCHAIN_FOR_TARGET="$TARGET-" ./configure \
