@@ -931,7 +931,6 @@ make -O -j $JOBS install \
     NO_GETTEXT=YesPlease \
     NO_GITWEB=YesPlease \
     NO_ICONV=YesPlease \
-    NO_OPENSSL=YesPlease \
     NO_PERL=YesPlease \
     NO_PYTHON=YesPlease \
     NO_REGEX=NeedsStartEnd \
@@ -1181,8 +1180,11 @@ $DIR_SRC/e2fsprogs/configure \
     --runstatedir=/tmp \
     --sbindir=/bin \
     --sharedstatedir=/etc
-make -O -j $JOBS
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
+# NOTE: BLKID_PROG and BLKID_MAN are cleared to prevent it from clobbering
+#       Toybox's version of blkid, which has proper UUID support. ~ahill
+make -O -j $JOBS BLKID_PROG=""
+make -O -j $JOBS install BLKID_PROG="" BLKID_MAN="" DESTDIR="$DIR_MAPLE" \
+    pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install kilo"
@@ -1236,6 +1238,10 @@ cp cc-runtime/src/cc-runtime.c common/cc-runtime.s2.c
 cp pdgzip/pdgzip.c common/compress/pdgzip.c
 cp pdgzip/pdgzip.h common/compress/pdgzip.h
 cp stbi-hardened/include/stb_image.h common/lib/stb_image.h
+# NOTE: Limine has a bug where it is unable to get the current version from git
+#       because .git is a file instead of a directory, which is normal for a
+#       submodule. As a result, Limine shows UNVERSIONED at boot. ~ahill
+patch -p1 < $DIR_PATCH/limine-submodversion.patch
 patch -p0 < common/stb_image.patch
 rm -f common/lib/stb_image.h.orig
 autoreconf -fvi -Wall
@@ -1245,10 +1251,6 @@ echo "SOURCE_DATE_EPOCH=\"$(git log -1 --pretty=%ct)\"" >> timestamps
 echo "SOURCE_DATE_EPOCH_TOUCH=\"$(git log -1 --pretty=%cI |
     head -c 16 |
     sed "s/[-T:]//g")\"" >> timestamps
-# NOTE: Limine has a bug where it is unable to get the current version from git
-#       because .git is a file instead of a directory, which is normal for a
-#       submodule. As a result, Limine shows UNVERSIONED at boot. ~ahill
-patch -p1 < $DIR_PATCH/limine-submodversion.patch
 # NOTE: Limine assumes an LLVM toolchain is present when cross-compiling, so
 #       TOOLCHAIN_FOR_TARGET is set to use the GNU toolchain. ~ahill
 TOOLCHAIN_FOR_TARGET="$TARGET-" ./configure \
@@ -1348,6 +1350,12 @@ cp -r $DIR_SRC/libbsd/. .
 # NOTE: To the upstream developers: .git is not guaranteed to be a directory!
 #       Case and point: Submodules. ~ahill
 sed -i "s/\[ -d .git \]/[ -e .git ]/" get-version
+# FIXME: libbsd's autoconf script relies on undefined behavior from GNU libtool,
+#        where $host_os is only valid because of LT_INIT. Since slibtool doesn't
+#        call AC_CANONICAL_HOST and $host_os is undefined, breaking the ABI for
+#        time_macros since it doesn't know what to do. ~ahill
+# See also: https://www.gnu.org/software/autoconf/manual/autoconf-2.73/html_node/Canonicalizing.html
+patch -p1 < $DIR_PATCH/libbsd-hostos.patch
 ./autogen
 ./configure \
     --build=$(./build-aux/config.guess) \
@@ -1544,14 +1552,19 @@ ln -s gcc $DIR_MAPLE/bin/cc
 STEP "Prepare the image"
 cd $DIR_MAPLE
 cp -r $DIR_BASE/overlay/. $DIR_MAPLE/
+chmod -R a=rx "$DIR_MAPLE/bin"
+chmod -R a=rx "$DIR_MAPLE/lib"
+chmod -R a=rX "$DIR_MAPLE/share"
+chmod 640 "$DIR_MAPLE/etc/shadow"
+chmod 750 "$DIR_MAPLE/home/root"
 $DIR_TOOLS/mapleconf \
     -c "$DIR_BASE/maple.toml" \
     -r "$DIR_MAPLE" \
     -t "$DIR_MAPLE/share/mapleconf"
 [ -z "$PRESERVE_TOOLS" ] && rm -rf $DIR_MAPLE/maple
 if [ -n "$ARCHIVE_SYSROOT" ]; then tar \
-    --group 0 \
+    --group=0 \
     --numeric-owner \
-    --user 0 \
-    cJf ../maple-$(echo $TARGET | cut -d"-" -f1)-base-$(date +%Y%m%d%H%M).txz *
+    --owner=0 \
+    -cJf ../maple-$(echo $TARGET | cut -d"-" -f1)-base-$(date +%Y%m%d%H%M).txz .
 fi

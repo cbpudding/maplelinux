@@ -1,0 +1,11 @@
+diff -ruN vanilla/configure.ac maple/configure.ac
+--- vanilla/configure.ac	2026-09-13 13:56:51.293598565 -0400
++++ maple/configure.ac	2026-09-13 14:04:41.285578341 -0400
+@@ -27,6 +27,7 @@
+ user_CFLAGS=${CFLAGS-unset}
+ 
+ # Checks for operating system services and capabilities.
++AC_CANONICAL_HOST
+ AC_USE_SYSTEM_EXTENSIONS
+ AC_SYS_LARGEFILE
+ LIBBSD_SYS_TIME64
