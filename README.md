@@ -16,14 +16,20 @@ While it may sound too good to be true, that's because it is. Maple Linux does n
 - In order to achieve the "unified experience", the software included has been selected in advance so that effort can be focused on improving the system as a whole. This makes it far less generic and customizable, but offers a much more coherent and focused system overall. In addition, this makes it much more maintainable for a single developer such as myself.
 - Much of the software in the Linux ecosystem, including Linux itself, is released under a copyleft license. While the Maple Linux project attempts to provide an operating system that gives you as much freedom as possible, some software licenses impose conditions on redistribution and modification that Maple Linux must respect.
 
+## Feature Sets
+
+Unlike most Linux distributions, which are package-based, Maple Linux builds and distributes sets of packages that can be installed. The current sets are:
+
+- Base - The minimum required to boot and build a copy of Maple Linux
+- User - The user-facing graphical environment (extends the base set)
+
 ## Status
 
-| Architecture | Base      |
-| ------------ | --------- |
-| ARM          | Planned   |
-| RISC-V       | Planned   |
-| SPARC        | Planned   |
-| x86_64       | Supported |
+| Architecture | Base      | User        |
+| ------------ | --------- | ----------- |
+| ARM          | Planned   | Planned     |
+| RISC-V       | Planned   | Planned     |
+| x86_64       | Supported | In Progress |
 
 ## Design
 
@@ -57,3 +63,4 @@ Maple Linux uses a different filesystem hierarchy compared to most Linux systems
 - [https://lists.busybox.net/pipermail/busybox/2010-December/074114.html](https://lists.busybox.net/pipermail/busybox/2010-December/074114.html)
 - [https://wiki.c2.com/?TheKenThompsonHack](https://wiki.c2.com/?TheKenThompsonHack)
 - [https://felipec.wordpress.com/2024/04/04/xz-backdoor-and-autotools-insanity/](https://felipec.wordpress.com/2024/04/04/xz-backdoor-and-autotools-insanity/)
+- [https://wayland.fyi/](https://wayland.fyi/)
