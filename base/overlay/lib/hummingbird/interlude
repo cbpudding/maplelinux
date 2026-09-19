@@ -1,3 +1,6 @@
 #!/bin/sh
 printf '\e[1;33mWelcome to Maple Linux!\e[0m\n'
 sysctl -pq
+
+mkdir -p /cache/chronyd
+respawn -d 1 chronyd -n &

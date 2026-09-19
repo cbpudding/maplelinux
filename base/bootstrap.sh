@@ -183,6 +183,9 @@ cd $DIR_BUILD/build-tz
 # NOTE: tz doesn't support out of tree builds. ~ahill
 cp -r $DIR_SRC/tz/. .
 make posix_only DESTDIR="$DIR_MAPLE" USRDIR="" USRSHAREDIR=share ZFLAGS="-b slim"
+# NOTE: chrony requires leap-seconds.list since the "right" subdirectory doesn't
+#       exist here. ~ahill
+cp leap-seconds.list "$DIR_MAPLE/share/zoneinfo/"
 
 
 STEP "Re-define the build environment to use the new tools"
