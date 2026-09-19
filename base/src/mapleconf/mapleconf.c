@@ -18,8 +18,8 @@
 #include <lauxlib.h> // luaL_*
 #include <lua.h> // LUA_*, lua_*
 #include <lualib.h> // luaopen_*
-#include <stdio.h> // FILE, SEEK_END, SEEK_SET, fclose, fopen, fprintf, fread,
-                   // fseek, ftell, fwrite, puts, sprintf, stderr
+#include <stdbool.h> // bool, false, true
+#include <stdio.h> // fprintf, puts, sprintf, stderr
 #include <stdlib.h> // free, malloc
 #include <string.h> // strcmp, strerror, strlen
 #include <sys/stat.h> // S_ISDIR, S_ISREG, mkdir, stat, struct stat
@@ -29,6 +29,10 @@
 #ifndef MAPLECONF_CONFIG_PATH
 #   define MAPLECONF_CONFIG_PATH "/etc/maple.toml"
 #endif
+
+const char MAPLECONF_LUA_SRC[] = {
+#   embed "mapleconf.lua"
+};
 
 const char MAPLECONF_LIQUID_LUA_SRC[] = {
 #   embed "liquid.lua"
@@ -47,91 +51,32 @@ const char MAPLECONF_DEFAULTS[] = {
 , 0
 };
 
-void render_file(lua_State *state, char *template_path, char *path) {
-    size_t length;
-    const char *result;
-    FILE *target;
-    char *template;
+bool render_file(lua_State *state, char *template_path, char *path) {
+    lua_getglobal(state, "render_file");
+    lua_pushstring(state, template_path);
+    lua_pushstring(state, path);
 
-    target = fopen(template_path, "r");
-    if(!target) {
-        fprintf(stderr, "%s: fopen: %s\n", template_path, strerror(errno));
-        return;
+    if(lua_pcall(state, 2, 0, 0) != LUA_OK) {
+        fprintf(stderr, "%s: %s\n", template_path, lua_tostring(state, -1));
+        lua_pop(state, 1);
+        return false;
     }
 
-    fseek(target, 0, SEEK_END);
-    length = ftell(target);
-    fseek(target, 0, SEEK_SET);
-
-    template = malloc(length);
-    if(!template) {
-        fprintf(
-            stderr,
-            "%s: Unable to allocate buffer for template\n",
-            template_path
-        );
-        fclose(target);
-        return;
-    }
-
-    if(fread(template, 1, length, target) != length) {
-        fprintf(stderr, "%s: fread: Incomplete read\n", template_path);
-        free(template);
-        fclose(target);
-        return;
-    }
-
-    fclose(target);
-
-    // liquid.Template:parse(template):render(context)
-    lua_getglobal(state, "liquid");
-    lua_getfield(state, -1, "Template");
-    lua_getfield(state, -1, "parse");
-    lua_pushvalue(state, -2);
-    lua_pushlstring(state, template, length);
-    if(lua_pcall(state, 2, 1, 0) != LUA_OK) {
-        fprintf(stderr, "%s: parse: %s\n", path, lua_tostring(state, -1));
-        free(template);
-        lua_pop(state, 3);
-        return;
-    }
-
-    free(template);
-
-    lua_getfield(state, -1, "render");
-    lua_pushvalue(state, -2);
-    lua_getglobal(state, "context");
-    if(lua_pcall(state, 2, 1, 0) != LUA_OK) {
-        fprintf(stderr, "%s: render: %s\n", path, lua_tostring(state, -1));
-        lua_pop(state, 4);
-        return;
-    }
-
-    target = fopen(path, "wb");
-    if(target) {
-        result = lua_tolstring(state, -1, &length);
-        if(fwrite(result, 1, length, target) != length) {
-            fprintf(stderr, "%s: fwrite: Incomplete write\n", path);
-        }
-        fclose(target);
-    } else {
-        fprintf(stderr, "%s: fopen: %s\n", path, strerror(errno));
-    }
-
-    lua_pop(state, 4);
+    return true;
 }
 
-void render_directory(lua_State *state, char *template_path, char *root_path) {
+bool render_directory(lua_State *state, char *template_path, char *root_path) {
     DIR *directory;
     struct dirent *entry;
     char *fullpath_root;
     char *fullpath_template;
     struct stat status;
+    bool success = true;
 
     directory = opendir(template_path);
     if(!directory) {
         fprintf(stderr, "%s: %s\n", template_path, strerror(errno));
-        return;
+        return false;
     }
 
     while((entry = readdir(directory))) {
@@ -151,17 +96,31 @@ void render_directory(lua_State *state, char *template_path, char *root_path) {
             fprintf(stderr, "%s: %s\n", fullpath_template, strerror(errno));
             free(fullpath_root);
             free(fullpath_template);
+            success = false;
             continue;
         }
 
         if(S_ISDIR(status.st_mode)) {
             if(access(fullpath_root, F_OK)) {
-                mkdir(fullpath_root, 0755);
+                if(!mkdir(fullpath_root, status.st_mode & 07777)) {
+                    fprintf(
+                        stderr,
+                        "%s: mkdir: %s\n",
+                        fullpath_root,
+                        strerror(errno)
+                    );
+                    success = false;
+                    continue;
+                }
             }
 
-            render_directory(state, fullpath_template, fullpath_root);
+            if(!render_directory(state, fullpath_template, fullpath_root)) {
+                success = false;
+            }
         } else if(S_ISREG(status.st_mode)) {
-            render_file(state, fullpath_template, fullpath_root);
+            if(!render_file(state, fullpath_template, fullpath_root)) {
+                success = false;
+            }
         }
 
         free(fullpath_root);
@@ -169,6 +128,7 @@ void render_directory(lua_State *state, char *template_path, char *root_path) {
     }
 
     closedir(directory);
+    return success;
 }
 
 int push_configuration_table(toml_datum_t *datum, lua_State *state) {
@@ -341,6 +301,32 @@ lua_State *init_template_engine(toml_result_t *config) {
 
     luaL_openlibs(state);
 
+    if(luaL_loadbufferx(
+        state,
+        MAPLECONF_LUA_SRC,
+        sizeof(MAPLECONF_LUA_SRC),
+        "@mapleconf.lua",
+        "t"
+    ) != LUA_OK) {
+        fprintf(
+            stderr,
+            "Error while loading mapleconf.lua: %s\n",
+            lua_tostring(state, -1)
+        );
+        lua_close(state);
+        return NULL;
+    }
+
+    if(lua_pcall(state, 0, 0, 0) != LUA_OK) {
+        fprintf(
+            stderr,
+            "Error while initializing mapleconf.lua: %s\n",
+            lua_tostring(state, -1)
+        );
+        lua_close(state);
+        return NULL;
+    }
+
     // _G.date = require("date")
     // _G.liquid = require("liquid")
     lua_getglobal(state, "package");
@@ -474,7 +460,9 @@ int build_configuration(
         return 1;
     }
 
-    render_directory(state, (char *)template_path, (char *)root_path);
+    if(!render_directory(state, (char *)template_path, (char *)root_path)) {
+        return 1;
+    }
 
     return 0;
 }
