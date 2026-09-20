@@ -164,7 +164,7 @@ mkdir -p $DIR_BUILD/build-liquid-lua
 cd $DIR_BUILD/build-liquid-lua
 mkdir -p $DIR_MAPLE/share/lua/5.5
 cp $DIR_SRC/liquid-lua/lib/liquid.lua .
-patch liquid.lua $DIR_PATCH/liquid-nocjson.patch
+patch liquid.lua $DIR_PATCH/liquid-maple.patch
 cp liquid.lua $DIR_MAPLE/share/lua/5.5/
 
 
@@ -367,7 +367,8 @@ cp -r $DIR_SRC/skalibs/. .
     --target=$TARGET \
     --with-sysdep-devurandom=yes \
     --with-sysdep-posixspawnearlyreturn=no \
-    --with-sysdep-procselfexe=yes
+    --with-sysdep-procselfexe=/proc/self/exe \
+    --with-sysdep-selectinfinite=yes
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
@@ -478,8 +479,8 @@ sed -i '/#include "parse.tab.h"/aextern YYSTYPE yylval;' scripts/genksyms/lex.l
 #       cross-compiled. Unsetting PKG_CONFIG_* temporarily. ~ahill
 env -u PKG_CONFIG_LIBDIR -u PKG_CONFIG_SYSROOT_DIR make -j $JOBS YACC=$YACC
 make -j $JOBS modules_install INSTALL_MOD_PATH=$DIR_MAPLE
-cp $(make image_name) $DIR_MAPLE/boot/vmlinuz-$(make kernelrelease)
-cp System.map $DIR_MAPLE/boot/System.map-$(make kernelrelease)
+cp $(make image_name) $DIR_MAPLE/boot/vmlinuz-maple
+cp System.map $DIR_MAPLE/boot/System.map-maple
 # NOTE: I have yet to test the following since I have only been testing on x86
 #       so far. ~ahill
 if make -n dtbs > /dev/null 2>&1; then
@@ -856,6 +857,9 @@ cd $DIR_BUILD/build-automake
 # NOTE: Since there is no configure script, the project needs to be
 #       bootstrapped, which requires a mutable source tree to accomplish. ~ahill
 cp -r $DIR_SRC/automake/. .
+# NOTE: Now automake is checking to see if .git is a directory instead of just
+#       checking if it exists. GAH! ~ahill
+sed -i "s/test ! -d .git/test ! -e .git/" bootstrap
 ./bootstrap
 # NOTE: M4 and PERL are manually set here so autoconf knows where to look on
 #       Maple Linux and *not* the build system. ~ahill

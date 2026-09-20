@@ -1,6 +1,6 @@
 diff -ruN vanilla/lib/liquid.lua maple/lib/liquid.lua
---- vanilla/lib/liquid.lua	2026-08-12 08:03:38.117924504 -0400
-+++ maple/lib/liquid.lua	2026-08-12 13:41:22.554824022 -0400
+--- vanilla/lib/liquid.lua	2026-09-19 18:55:52.611398590 -0400
++++ maple/lib/liquid.lua	2026-09-19 19:19:44.454454193 -0400
 @@ -1,4 +1,3 @@
 -local cjson = require 'cjson'
  local Datelib = require 'date'
@@ -161,7 +161,23 @@ diff -ruN vanilla/lib/liquid.lua maple/lib/liquid.lua
      end
  end
  --
-@@ -2902,24 +2927,35 @@
+@@ -2744,13 +2769,11 @@
+ ------------------------------------------------------------- friendly interface end ---------------------------------------------------------
+ ------------------------------------------------------------- helper methods begin ---------------------------------------------------------
+ function string:lstrip( ... )
+-    local ws = [[(\A\s*)]]
+-    return ngx.re.sub(self, ws, '')
++    return self:gsub("^%s*", "")
+ end
+ --
+ function string:rstrip( ... )
+-    local ws = [[(\s*\z)]]
+-    return ngx.re.sub(self, ws, '')
++    return self:gsub("%s*$", "")
+ end
+ 
+ do
+@@ -2902,26 +2925,54 @@
          table.sort(t)
          return t
      else
@@ -171,7 +187,8 @@ diff -ruN vanilla/lib/liquid.lua maple/lib/liquid.lua
          return t
      end
  end
- local function uniq( a )
+-local function uniq( a )
++local function uniq(a)
      -- body
 -    local t = {}
      local result = {}
@@ -205,8 +222,27 @@ diff -ruN vanilla/lib/liquid.lua maple/lib/liquid.lua
 +
      return result
  end
++local function where(victim, key, value)
++    local filtered = {}
++
++    for _, v in ipairs(iterator(victim)) do
++        if value == nil then
++            if v[key] then
++                table.insert(filtered, v)
++            end
++        else
++            if v[key] == value then
++                table.insert(filtered, v)
++            end
++        end
++    end
++
++    return filtered
++end
  --=== array filter end
-@@ -3098,7 +3134,7 @@
+ --=== math filter begin
+ local abs = math.abs
+@@ -3098,7 +3149,7 @@
  local function date(obj, format)
      local date_obj = nil;
      local func = date_func[obj]
@@ -215,7 +251,7 @@ diff -ruN vanilla/lib/liquid.lua maple/lib/liquid.lua
          date_obj = func(obj)
      else
          date_obj = date_func["default"](obj)
-@@ -3107,11 +3143,6 @@
+@@ -3107,11 +3158,6 @@
  end
  --=== Date filter end
  --=== Additional filter begin
@@ -227,7 +263,7 @@ diff -ruN vanilla/lib/liquid.lua maple/lib/liquid.lua
  
  local function get(obj, key)
      return obj[key]
-@@ -3122,7 +3153,7 @@
+@@ -3122,7 +3168,7 @@
  
  
  --========================================================== add filers to FilterSet instance================================
@@ -236,7 +272,17 @@ diff -ruN vanilla/lib/liquid.lua maple/lib/liquid.lua
  FilterSet:add_filter("join", join )
  FilterSet:add_filter("first", first )
  FilterSet:add_filter("last", last )
-@@ -3168,7 +3199,6 @@
+@@ -3132,7 +3178,8 @@
+ FilterSet:add_filter("reverse", reverse )
+ FilterSet:add_filter("size", size )
+ FilterSet:add_filter("sort", sort )
+-FilterSet:add_filter("uniq", uniq )
++FilterSet:add_filter("uniq", uniq)
++FilterSet:add_filter("where", where)
+ --Math filter
+ FilterSet:add_filter("abs", abs )
+ FilterSet:add_filter("ceil", ceil )
+@@ -3168,7 +3215,6 @@
  FilterSet:add_filter("date", date )
  
  --Additinal filter
