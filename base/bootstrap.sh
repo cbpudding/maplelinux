@@ -39,7 +39,7 @@ STEP "Prepare a clean build environment"
 [ -d $DIR_BUILD ] && rm -rf $DIR_BUILD
 mkdir -p $DIR_BUILD
 
-[ -d $DIR_MAPLE ] && rm -rf $DIR_MAPLE
+[ -d $DIR_MAPLE ] && (chmod -R 777 $DIR_MAPLE; rm -rf $DIR_MAPLE)
 mkdir -p $DIR_MAPLE
 
 [ -d $DIR_TOOLS ] && rm -rf $DIR_TOOLS
