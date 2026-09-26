@@ -1391,6 +1391,38 @@ make -O -j $JOBS INCLUDEDIR="$DIR_MAPLE/share/include" LDFLAGS=-static
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE" MANDIR=/share/man SBINDIR=/bin
 
 
+STEP "Build and install libnl-tiny"
+mkdir -p $DIR_BUILD/build-libnl-tiny
+cd $DIR_BUILD/build-libnl-tiny
+# NOTE: libnl-tiny uses CMake as its build system, but the project is simple
+#       enough to avoid it. ~ahill
+for src in "$DIR_SRC"/libnl-tiny/*.c; do
+    echo "$(basename "$src")"
+    $CC $CFLAGS -fPIC -I"$DIR_SRC/libnl-tiny/include" -Wall -Werror -Wextra \
+        -Wno-unused-parameter -c "$src" -o "$(basename "${src%.c}")".o
+done
+$AR rcs "$DIR_MAPLE/lib/libnl-tiny.a" *.o
+$CC -shared -o "$DIR_MAPLE/lib/libnl-tiny.so" *.o
+sed -e "s|@CMAKE_INSTALL_INCLUDEDIR@|share/include|" \
+    -e "s|@CMAKE_INSTALL_LIBDIR@|lib|" \
+    -e "s|@CMAKE_INSTALL_PREFIX@||" \
+    "$DIR_SRC/libnl-tiny/libnl-tiny.pc.in" \
+    > "$DIR_MAPLE/share/pkgconfig/libnl-tiny.pc"
+mkdir -p "$DIR_MAPLE/share/include/libnl-tiny"
+cp -r "$DIR_SRC/libnl-tiny/include/." "$DIR_MAPLE/share/include/libnl-tiny/"
+
+
+STEP "Build and install hostap"
+mkdir -p $DIR_BUILD/build-hostap
+cd $DIR_BUILD/build-hostap
+# NOTE: Makefile doesn't support out-of-tree builds. ~ahill
+cp -r $DIR_SRC/hostap/. .
+cp "$DIR_PATCH/wpa_supplicant.config" wpa_supplicant/.config
+make -C wpa_supplicant -O -j $JOBS
+make -C wpa_supplicant -O -j $JOBS install BINDIR=/bin DESTDIR="$DIR_MAPLE" \
+    INCDIR=/share/include LIBDIR=/lib
+
+
 STEP "Install maplelinux-tools"
 # FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
 #        ~ahill

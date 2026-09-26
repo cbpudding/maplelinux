@@ -178,3 +178,9 @@
 [submodule "base/src/libmd"]
 	path = base/src/libmd
 	url = https://gitlab.freedesktop.org/libbsd/libmd
+[submodule "base/src/hostap"]
+	path = base/src/hostap
+	url = https://git.w1.fi/hostap.git
+[submodule "base/src/libnl-tiny"]
+	path = base/src/libnl-tiny
+	url = https://git.openwrt.org/project/libnl-tiny.git
