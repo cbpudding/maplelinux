@@ -225,6 +225,8 @@ cp -r usr/include $DIR_MAPLE/share/
 STEP "Build and install musl"
 mkdir -p $DIR_BUILD/build-musl
 cd $DIR_BUILD/build-musl
+patch -p1 < "$DIR_PATCH/musl-cve-2026-6042.patch"
+patch -p1 < "$DIR_PATCH/musl-cve-2026-40200.patch"
 $DIR_SRC/musl/configure \
     --bindir=/bin \
     --includedir=/share/include \
