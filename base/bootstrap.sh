@@ -1425,6 +1425,16 @@ make -C wpa_supplicant -O -j $JOBS install BINDIR=/bin DESTDIR="$DIR_MAPLE" \
     INCDIR=/share/include LIBDIR=/lib
 
 
+STEP "Build and install doas"
+mkdir -p $DIR_BUILD/build-doas
+cd $DIR_BUILD/build-doas
+# NOTE: Using a Makefile with no out-of-tree build capabilities ~ahill
+cp -r "$DIR_SRC/doas/." .
+# NOTE: "gcc" is hard-coded here, so CC is manually set. ~ahill
+make -O -j $JOBS CC="$CC" LDFLAGS="-static"
+cp doas "$DIR_MAPLE/bin/"
+
+
 STEP "Install maplelinux-tools"
 # FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
 #        ~ahill

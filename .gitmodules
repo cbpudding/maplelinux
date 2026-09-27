@@ -184,3 +184,6 @@
 [submodule "base/src/libnl-tiny"]
 	path = base/src/libnl-tiny
 	url = https://git.openwrt.org/project/libnl-tiny.git
+[submodule "base/src/doas"]
+	path = base/src/doas
+	url = https://github.com/multiplexd/doas
