@@ -1,0 +1,20 @@
+#!/bin/sh -e
+[ $# -lt 2 ] && (echo "Usage: $0 <interface> <ssid> [psk]" >&2; exit 1)
+IFACE="$1"
+PSK="$3"
+SSID="$2"
+
+[ -z "$PSK" ] && PSK=$(wpa_passphrase "$SSID" | sed -n 's/^[[:space:]]*psk=\(.*\)/\1/p')
+
+ID=$(wpa_cli -i "$IFACE" add_network)
+case "$ID" in
+    ''|*[!0-9]*)
+        echo "$0: add_network failed: $ID" >&2
+        exit 1
+        ;;
+esac
+
+wpa_cli -i "$IFACE" set_network $ID ssid "\"$SSID\""
+wpa_cli -i "$IFACE" set_network $ID psk "\"$PSK\""
+wpa_cli -i "$IFACE" enable_network $ID
+wpa_cli -i "$IFACE" select_network $ID
