@@ -275,6 +275,8 @@ cp -r $DIR_SRC/netbsd-curses/. .
 sed -i 's|$(DESTDIR)$(LIBDIR)/pkgconfig|$(DESTDIR)/share/pkgconfig|' GNUmakefile
 make -O -j $JOBS PREFIX=""
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INCDIR=/share/include PREFIX=""
+make terminfo/terminfo.cdb
+cp terminfo/terminfo.cdb "$DIR_MAPLE/share/"
 
 
 STEP "Build and install zsh"
