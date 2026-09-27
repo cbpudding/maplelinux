@@ -1661,8 +1661,6 @@ ln -s gcc $DIR_MAPLE/bin/cc
 STEP "Prepare the image"
 cd $DIR_MAPLE
 cp -r $DIR_BASE/overlay/. $DIR_MAPLE/
-chmod -R a=rx "$DIR_MAPLE/bin"
-chmod -R a=rx "$DIR_MAPLE/lib"
 chmod -R a=rX "$DIR_MAPLE/share"
 chmod 640 "$DIR_MAPLE/etc/shadow"
 chmod 750 "$DIR_MAPLE/home/root"
