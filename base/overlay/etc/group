@@ -1,3 +1,5 @@
 root:x:0:root
+reserved:x:1:reserved
+dhcp:x:2:
 tty:x:5:
 nogroup:x:65534:

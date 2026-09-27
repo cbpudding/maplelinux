@@ -501,11 +501,17 @@ cd $DIR_BUILD/build-ndhc
 # NOTE: Ragel will *sometimes* get invoked because the timestamp of the parser
 #       is newer than the C code it generated. Telling cp to preserve timestamps
 #       fixes this behavior. ~ahill
-cp -a $DIR_SRC/ndhc/. .
+cp -a "$DIR_SRC/ndhc/." .
 CFLAGS="-static --sysroot=$DIR_MAPLE" make -j $JOBS
-cp ndhc $DIR_MAPLE/bin/
-mkdir -p $DIR_MAPLE/share/man/man8
-cp ndhc.8 $DIR_MAPLE/share/man/man8/
+cp ndhc "$DIR_MAPLE/bin/"
+mkdir -p "$DIR_MAPLE/share/man/man8"
+cp ndhc.8 "$DIR_MAPLE/share/man/man8/"
+NDHCJAIL="$DIR_MAPLE/etc/ndhc/jail"
+mkdir -p "$NDHCJAIL/dev"
+mkdir -p "$NDHCJAIL/var/run"
+mkdir -p "$NDHCJAIL/var/state"
+chmod -R 755 "$NDHCJAIL"
+chmod g+w "$NDHCJAIL/var/run"
 
 
 STEP "Build and install chrony"
