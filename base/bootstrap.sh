@@ -63,6 +63,20 @@ mkdir -p $DIR_MAPLE/sys             # Linux Kernel Objects
 mkdir -p $DIR_MAPLE/tmp             # Temporary Data
 
 
+STEP "Bootstrap muon"
+mkdir -p $DIR_BUILD/build-muon
+cd $DIR_BUILD/build-muon
+# NOTE: This is the CLEANEST bootstrap I think I have ever seen. I wish all
+#       software had a way to build enough of itself without requiring itself.
+#       This is a bootstrapper's dream. ~ahill
+# NOTE: sed and CFLAGS is used here to allow the project to be bootstrapped from
+#       outside of the source tree. ~ahill
+sed "s|src/amalgam.c|$DIR_SRC/muon/&|" "$DIR_SRC/muon/bootstrap.sh" \
+    > bootstrap.sh
+chmod +x bootstrap.sh
+CFLAGS="-I$DIR_SRC/muon/include" ./bootstrap.sh .
+
+
 STEP "Build the cross-linker/assembler"
 mkdir -p $DIR_BUILD/cross-binutils
 cd $DIR_BUILD/cross-binutils
@@ -1444,6 +1458,39 @@ cp -r "$DIR_SRC/doas/." .
 # NOTE: "gcc" is hard-coded here, so CC is manually set. ~ahill
 make -O -j $JOBS CC="$CC" LDFLAGS="-static"
 cp doas "$DIR_MAPLE/bin/"
+
+
+STEP "Build and install muon"
+mkdir -p $DIR_BUILD/build-muon
+cd $DIR_BUILD/build-muon
+# NOTE: libpkgconf is currently disabled since the latest version of pkgconf
+#       broke pkgconf_client_init. I was impressed by how clean the
+#       bootstrapping process was, and now it's being threatened by a patch that
+#       technically isn't needed to run muon. The exec backend for pkgconf will
+#       do the trick in this case, so muon can behave normally. This has already
+#       been patched upstream, meaning -Dlibpkgconf=disabled can be removed when
+#       the next version of muon is released. ~ahill
+# TODO: Determine whether meson-docs and meson-tests requires Internet access to
+#       function. ~ahill
+./muon-bootstrap -C "$DIR_SRC/muon" setup \
+    -Dincludedir=share/include \
+    -Dlibarchive=disabled \
+    -Dlibcurl=disabled \
+    -Dlibdir=lib \
+    -Dlibexecdir=lib \
+    -Dlibpkgconf=disabled \
+    -Dlocalstatedir=etc \
+    -Dmeson-docs=disabled \
+    -Dmeson-tests=disabled \
+    -Dprefix=/ \
+    -Dsbindir=bin \
+    -Dsharedstatedir=etc \
+    -Dstatic=true \
+    -Dtracy=disabled \
+    "$DIR_BUILD/build-muon"
+./muon-bootstrap samu
+# NOTE: Tests can't be run during cross-compilation. ~ahill
+DESTDIR="$DIR_MAPLE" ./muon-bootstrap install
 
 
 STEP "Install maplelinux-tools"

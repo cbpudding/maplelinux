@@ -187,3 +187,6 @@
 [submodule "base/src/doas"]
 	path = base/src/doas
 	url = https://github.com/multiplexd/doas
+[submodule "base/src/muon"]
+	path = base/src/muon
+	url = https://git.sr.ht/~lattis/muon
