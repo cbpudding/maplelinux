@@ -257,6 +257,59 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 ln -s /lib/libc.so $DIR_MAPLE/bin/ldd
 
 
+STEP "Build and install Sortix libz (Not zlib!)"
+mkdir -p $DIR_BUILD/build-libz
+cd $DIR_BUILD/build-libz
+$DIR_SRC/libz/configure \
+    --eprefix="" \
+    --includedir=/share/include \
+    --libdir=/lib \
+    --prefix="" \
+    --sharedlibdir=/lib
+make -O -j $JOBS
+# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
+#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
+make -O -j $JOBS install DESTDIR=$DIR_MAPLE pkgconfigdir=/share/pkgconfig
+
+
+STEP "Build and install LibreSSL"
+mkdir -p $DIR_BUILD/build-libressl
+cd $DIR_BUILD/build-libressl
+# NOTE: No configure script. Copying the source tree here. ~ahill
+cp -r $DIR_SRC/libressl/. .
+# NOTE: LibreSSL requires a chunk of the OpenBSD source code to build. ~ahill
+cp -r $DIR_SRC/libressl-openbsd openbsd
+# NOTE: zsh does not like "fi done" at all, so a semicolon is placed between the
+#       two to prevent zsh from throwing a parse error. ~ahill
+sed -i 's/^\([[:space:]]*\)fi \\$/\1fi; \\/' Makefile.am
+./autogen.sh
+# TODO: Split LibreSSL's directory between /etc and /share to match Maple's
+#       hierarchy. ~ahill
+# NOTE: The main program is *intentionally* installed as /bin/libressl for
+#       transparency's sake, even though there's no precident for doing so. A
+#       symlink from /bin/openssl to /bin/libressl is easier to explain than
+#       LibreSSL simply taking OpenSSL's place. ~ahill
+./configure \
+    --build=$(./config.guess) \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --program-transform-name="s/^openssl$/libressl/" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc \
+    --with-openssldir=/etc/ssl \
+    --with-sysroot="$DIR_MAPLE"
+make -O -j $JOBS
+# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
+#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
+ln -s libressl "$DIR_MAPLE/bin/openssl"
+
+
 STEP "Build and install toybox"
 mkdir -p $DIR_BUILD/build-toybox
 cd $DIR_BUILD/build-toybox
@@ -417,21 +470,6 @@ make -O -j $JOBS
 make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
 
-STEP "Build and install Sortix libz (Not zlib!)"
-mkdir -p $DIR_BUILD/build-libz
-cd $DIR_BUILD/build-libz
-$DIR_SRC/libz/configure \
-    --eprefix="" \
-    --includedir=/share/include \
-    --libdir=/lib \
-    --prefix="" \
-    --sharedlibdir=/lib
-make -O -j $JOBS
-# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
-#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE pkgconfigdir=/share/pkgconfig
-
-
 STEP "Build and install libelf"
 mkdir -p "$DIR_BUILD/build-libelf"
 cd "$DIR_BUILD/build-libelf"
@@ -440,44 +478,6 @@ cp -r "$DIR_SRC/libelf/." .
 patch -p1 < "$DIR_PATCH/libelf-nozstd.patch"
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INCDIR=/share/include
-
-
-STEP "Build and install LibreSSL"
-mkdir -p $DIR_BUILD/build-libressl
-cd $DIR_BUILD/build-libressl
-# NOTE: No configure script. Copying the source tree here. ~ahill
-cp -r $DIR_SRC/libressl/. .
-# NOTE: LibreSSL requires a chunk of the OpenBSD source code to build. ~ahill
-cp -r $DIR_SRC/libressl-openbsd openbsd
-# NOTE: zsh does not like "fi done" at all, so a semicolon is placed between the
-#       two to prevent zsh from throwing a parse error. ~ahill
-sed -i 's/^\([[:space:]]*\)fi \\$/\1fi; \\/' Makefile.am
-./autogen.sh
-# TODO: Split LibreSSL's directory between /etc and /share to match Maple's
-#       hierarchy. ~ahill
-# NOTE: The main program is *intentionally* installed as /bin/libressl for
-#       transparency's sake, even though there's no precident for doing so. A
-#       symlink from /bin/openssl to /bin/libressl is easier to explain than
-#       LibreSSL simply taking OpenSSL's place. ~ahill
-./configure \
-    --build=$(./config.guess) \
-    --host=$TARGET \
-    --includedir=/share/include \
-    --libexecdir=/lib \
-    --localstatedir=/etc \
-    --oldincludedir=/share/include \
-    --prefix="" \
-    --program-transform-name="s/^openssl$/libressl/" \
-    --runstatedir=/tmp \
-    --sbindir=/bin \
-    --sharedstatedir=/etc \
-    --with-openssldir=/etc/ssl \
-    --with-sysroot="$DIR_MAPLE"
-make -O -j $JOBS
-# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
-#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
-make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
-ln -s libressl "$DIR_MAPLE/bin/openssl"
 
 
 STEP "Build and install Linux"
