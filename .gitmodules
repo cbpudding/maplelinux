@@ -190,3 +190,6 @@
 [submodule "base/src/muon"]
 	path = base/src/muon
 	url = https://git.sr.ht/~lattis/muon
+[submodule "base/src/sysklogd"]
+	path = base/src/sysklogd
+	url = https://github.com/troglobit/sysklogd

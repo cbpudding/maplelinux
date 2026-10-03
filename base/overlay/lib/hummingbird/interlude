@@ -1,6 +1,11 @@
 #!/bin/sh
 printf '\e[1;33mWelcome to Maple Linux!\e[0m\n'
+mkdir -p /cache
 sysctl -pq
+
+[ ! -f "/cache/log" ] && touch /cache/log
+chmod 640 /cache/log
+respawn -d 1 syslogd -F &
 
 mkdir -p /cache/chronyd
 respawn -d 1 chronyd -n &

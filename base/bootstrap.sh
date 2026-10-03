@@ -1493,6 +1493,28 @@ cd $DIR_BUILD/build-muon
 DESTDIR="$DIR_MAPLE" ./muon-bootstrap install
 
 
+STEP "Build and install sysklogd"
+mkdir -p "$DIR_BUILD/build-sysklogd"
+cd "$DIR_BUILD/build-sysklogd"
+# NOTE: Another autotools consumer... *sigh* ~ahill
+cp -r "$DIR_SRC/sysklogd/." .
+./autogen.sh
+./configure \
+    --build=$(./aux/config.guess) \
+    --host=$TARGET \
+    --includedir=/share/include \
+    --libexecdir=/lib \
+    --localstatedir=/etc \
+    --oldincludedir=/share/include \
+    --prefix="" \
+    --runstatedir=/tmp \
+    --sbindir=/bin \
+    --sharedstatedir=/etc \
+    --with-sysroot="$DIR_MAPLE"
+make -O -j $JOBS
+make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
+
+
 STEP "Install maplelinux-tools"
 # FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
 #        ~ahill
@@ -1661,9 +1683,6 @@ ln -s gcc $DIR_MAPLE/bin/cc
 STEP "Prepare the image"
 cd $DIR_MAPLE
 cp -r $DIR_BASE/overlay/. $DIR_MAPLE/
-chmod -R a=rX "$DIR_MAPLE/share"
-chmod 640 "$DIR_MAPLE/etc/shadow"
-chmod 750 "$DIR_MAPLE/home/root"
 $DIR_TOOLS/mapleconf \
     -c "$DIR_BASE/maple.toml" \
     -r "$DIR_MAPLE" \
