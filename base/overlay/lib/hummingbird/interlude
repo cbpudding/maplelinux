@@ -2,11 +2,6 @@
 printf '\e[1;33mWelcome to Maple Linux!\e[0m\n'
 sysctl -pq
 mkdir -p /cache
-chmod -R a=rx /bin
-chmod -R a=rx /lib
-chmod -R a=rx /share
-chmod 640 /etc/shadow
-chmod 750 /home/root
 
 [ ! -f "/cache/log" ] && touch /cache/log
 chmod 640 /cache/log
@@ -16,7 +11,7 @@ mkdir -p /cache/chronyd
 respawn -d 1 chronyd -n &
 
 [ ! -c "/etc/ndhc/jail/dev/null" ] && mknod /etc/ndhc/jail/dev/null c 1 3
-[ ! -c "/etc/ndhc/jail/dev/urandom" ] && mknod /etc/ndhc/jail/dev/urandom c 1 9
-chown -R ndhc:dhcp /etc/ndhc/jail/var
 chmod 666 /etc/ndhc/jail/dev/null
+[ ! -c "/etc/ndhc/jail/dev/urandom" ] && mknod /etc/ndhc/jail/dev/urandom c 1 9
 chmod 444 /etc/ndhc/jail/dev/urandom
+chown -R ndhc:dhcp /etc/ndhc/jail/var

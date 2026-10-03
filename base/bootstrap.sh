@@ -1683,6 +1683,15 @@ ln -s gcc $DIR_MAPLE/bin/cc
 STEP "Prepare the image"
 cd $DIR_MAPLE
 cp -r $DIR_BASE/overlay/. $DIR_MAPLE/
+chmod -R 755 /bin
+chmod 4755 /bin/doas
+chmod -R 755 /cache
+chmod 755 /etc
+chmod 640 /etc/shadow
+chmod 755 /home
+chmod 750 /home/root
+chmod -R u=rwX,go=rX /lib /share
+chmod 755 /tmp
 $DIR_TOOLS/mapleconf \
     -c "$DIR_BASE/maple.toml" \
     -r "$DIR_MAPLE" \
