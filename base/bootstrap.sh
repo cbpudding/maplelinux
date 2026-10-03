@@ -1701,5 +1701,5 @@ if [ -n "$ARCHIVE_SYSROOT" ]; then tar \
     --group=0 \
     --numeric-owner \
     --owner=0 \
-    -cJf ../maple-$(echo $TARGET | cut -d"-" -f1)-base-$(date +%Y%m%d%H%M).txz .
+    -cJf ../maple-$(echo $TARGET | cut -d"-" -f1)-base-$(date +%Y%m%d).txz .
 fi
