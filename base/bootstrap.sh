@@ -1687,7 +1687,6 @@ chmod -R 755 bin
 chmod 4755 bin/doas
 chmod -R 755 cache
 chmod 755 etc
-chmod 640 etc/shadow
 chmod 755 home
 chmod 750 home/root
 chmod -R u=rwX,go=rX lib share
