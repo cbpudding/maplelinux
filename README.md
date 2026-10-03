@@ -21,6 +21,7 @@ While it may sound too good to be true, that's because it is. Maple Linux does n
 Unlike most Linux distributions, which are package-based, Maple Linux builds and distributes sets of packages that can be installed. The current sets are:
 
 - Base - The minimum required to boot and build a copy of Maple Linux
+- Init - A psuedo package set that includes all of the data required for the initial install, but shouldn't be overwritten during a system upgrade like other sets
 - User - The user-facing graphical environment (extends the base set)
 
 ## Status
