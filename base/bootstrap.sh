@@ -621,32 +621,6 @@ make -O -j $JOBS prefix=""
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includedir=/share/include prefix=""
 
 
-STEP "Build and install xz"
-mkdir -p $DIR_BUILD/build-xz
-cd $DIR_BUILD/build-xz
-# NOTE: Curse you auto-generating build scripts! ~ahill
-cp -r $DIR_SRC/xz/. .
-./autogen.sh --no-po4a
-# TODO: Is sysroot even required if the compiler is told to use the sysroot
-#       anyways? ~ahill
-CFLAGS="--sysroot=$DIR_MAPLE" ./configure \
-    --enable-year2038 \
-    --build=$(build-aux/config.guess) \
-    --host=$TARGET \
-    --includedir=/share/include \
-    --libexecdir=/lib \
-    --localstatedir=/etc \
-    --oldincludedir=/share/include \
-    --prefix="" \
-    --runstatedir=/tmp \
-    --sbindir=/bin \
-    --sharedstatedir=/etc
-CFLAGS="--sysroot=$DIR_MAPLE" make -O -j $JOBS
-# NOTE: pkgconfigdir defaults to $(libdir)/pkgconfig and doesn't have a
-#       configure switch. Setting pkgconfigdir manually as a workaround. ~ahill
-make -O -j $JOBS install DESTDIR=$DIR_MAPLE pkgconfigdir=/share/pkgconfig
-
-
 STEP "Build and install awk"
 mkdir -p $DIR_BUILD/build-awk
 cd $DIR_BUILD/build-awk
@@ -1187,7 +1161,6 @@ sed -i "s/--force --relative/-fr/" Makefile.am
     --with-openssl \
     --with-pkgconfigdir=/share/pkgconfig \
     --with-sysroot="$DIR_MAPLE" \
-    --with-xz \
     --with-zlib \
     --with-zshcompletiondir=/share/zsh/site-functions
 make -O -j $JOBS
@@ -1700,5 +1673,5 @@ if [ -n "$ARCHIVE_SYSROOT" ]; then tar \
     --group=0 \
     --numeric-owner \
     --owner=0 \
-    -cJf ../maple-$(echo $TARGET | cut -d"-" -f1)-base-$(date +%Y%m%d).txz .
+    -czf ../maple-$(echo $TARGET | cut -d"-" -f1)-base-$(date +%Y%m%d).tgz .
 fi
