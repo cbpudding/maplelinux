@@ -1429,7 +1429,8 @@ cd $DIR_BUILD/build-doas
 # NOTE: Using a Makefile with no out-of-tree build capabilities ~ahill
 cp -r "$DIR_SRC/doas/." .
 # NOTE: "gcc" is hard-coded here, so CC is manually set. ~ahill
-make -O -j $JOBS CC="$CC" LDFLAGS="-static"
+make -O -j $JOBS CC="$CC" DEFAULT_PATH=/bin LDFLAGS="-static" SAFE_PATH=/bin \
+    STATE_DIR=/tmp/doas
 cp doas "$DIR_MAPLE/bin/"
 
 
