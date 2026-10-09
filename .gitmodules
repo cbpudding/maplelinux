@@ -190,3 +190,42 @@
 [submodule "base/src/sysklogd"]
 	path = base/src/sysklogd
 	url = https://github.com/troglobit/sysklogd
+[submodule "user/src/weston"]
+	path = user/src/weston
+	url = https://gitlab.freedesktop.org/wayland/weston
+[submodule "user/src/wayland"]
+	path = user/src/wayland
+	url = https://gitlab.freedesktop.org/wayland/wayland
+[submodule "user/src/libffi"]
+	path = user/src/libffi
+	url = https://github.com/libffi/libffi
+[submodule "user/src/libexpat"]
+	path = user/src/libexpat
+	url = https://github.com/libexpat/libexpat
+[submodule "user/src/pixman"]
+	path = user/src/pixman
+	url = https://gitlab.freedesktop.org/pixman/pixman
+[submodule "user/src/libxkbcommon"]
+	path = user/src/libxkbcommon
+	url = https://github.com/xkbcommon/libxkbcommon
+[submodule "user/src/libudev-zero"]
+	path = user/src/libudev-zero
+	url = https://github.com/illiliti/libudev-zero
+[submodule "user/src/libinput"]
+	path = user/src/libinput
+	url = https://gitlab.freedesktop.org/libinput/libinput
+[submodule "user/src/libevdev"]
+	path = user/src/libevdev
+	url = https://gitlab.freedesktop.org/libevdev/libevdev
+[submodule "user/src/cpython"]
+	path = user/src/cpython
+	url = https://github.com/python/cpython
+[submodule "user/src/libdrm"]
+	path = user/src/libdrm
+	url = https://gitlab.freedesktop.org/mesa/libdrm
+[submodule "user/src/libdisplay-info"]
+	path = user/src/libdisplay-info
+	url = https://gitlab.freedesktop.org/emersion/libdisplay-info
+[submodule "user/src/hwdata"]
+	path = user/src/hwdata
+	url = https://github.com/vcrhonek/hwdata
