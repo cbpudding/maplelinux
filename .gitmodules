@@ -227,5 +227,5 @@
 	path = user/src/libdisplay-info
 	url = https://gitlab.freedesktop.org/emersion/libdisplay-info
 [submodule "user/src/hwdata"]
-	path = user/src/hwdata
+	path = base/src/hwdata
 	url = https://github.com/vcrhonek/hwdata

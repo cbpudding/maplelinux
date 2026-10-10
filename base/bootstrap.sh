@@ -9,6 +9,15 @@ STEP() {
     fi
 }
 
+# NOTE: Keep track of licenses for legal purposes ~ahill
+preserve_copyright() {
+    [ -z "$1" ] && (echo "Name not provided to preserve_copyright"; exit 1)
+    _softwaredir="$DIR_MAPLE/share/copyright/$1"
+    mkdir -p "$_softwaredir"
+    shift
+    cp "$@" "$_softwaredir"
+}
+
 STEP "Define the build environment"
 export DIR_BASE=$(realpath $(dirname $0))
 # NOTE: This is to make it easier to replicate the environment for
@@ -257,6 +266,38 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 ln -s /lib/libc.so $DIR_MAPLE/bin/ldd
 
 
+STEP "Build and install hwdata"
+mkdir -p "$DIR_BUILD/build-hwdata"
+cd "$DIR_BUILD/build-hwdata"
+# NOTE: hwdata offers XFree86 1.0 as an alternative to GPL, but doesn't ship a
+#       copy of the license in the repository. After doing some digital
+#       archaeology, I was able to find a copy on the official XFree86 website,
+#       but I'm not sure how long it's going to be up. Thankfully, the Internet
+#       Archive's Wayback Machine seems to have saved a copy, so that will
+#       become the canonical source should the original site cease to exist.
+#       ~ahill
+# See also: http://ftp.xfree86.org/pub/XFree86/4.3.0/LICENSE
+#           https://web.archive.org/web/20071004104101/http://ftp.xfree86.org/pub/XFree86/4.3.0/LICENSE
+preserve_copyright hwdata "$DIR_SRC/hwdata/LICENSE" \
+    "$DIR_PATCH/XFree86-1.0.LICENSE"
+# NOTE: Not autotools, just something autoconf-like. ~ahill
+"$DIR_SRC/hwdata/configure" \
+    --disable-blacklist \
+    --libexecdir=/lib \
+    --prefix="" \
+    --sbindir=/bin
+# NOTE: Nothing to actually "make" here since hwdata is just data. ~ahill
+# NOTE: "make install" doesn't *really* work out-of-tree, despite the configure
+#       script seeming to support it at first. Setting IDFILES and VPATH to
+#       point it to the data it needs to install, and setting VERSION to set the
+#       proper version number, regardless of what the submodule is pointing at.
+#       ~ahill
+make install DESTDIR="$DIR_MAPLE" \
+    IDFILES='$(addprefix $(srcdir)/,pci.ids usb.ids oui.txt iab.txt pnp.ids)' \
+    VERSION="$(sed -n "s/^Version:[[:space:]]*//p" "$DIR_SRC/hwdata/hwdata.spec")" \
+    VPATH="$DIR_SRC/hwdata"
+
+
 STEP "Build and install Sortix libz (Not zlib!)"
 mkdir -p $DIR_BUILD/build-libz
 cd $DIR_BUILD/build-libz
@@ -311,16 +352,20 @@ ln -s libressl "$DIR_MAPLE/bin/openssl"
 
 
 STEP "Build and install toybox"
-mkdir -p $DIR_BUILD/build-toybox
-cd $DIR_BUILD/build-toybox
+mkdir -p "$DIR_BUILD/build-toybox"
+cd "$DIR_BUILD/build-toybox"
 # NOTE: I cannot figure out how the heck to build toybox outside of the source
 #       tree, so this will have to do for now. ~ahill
-cp -r $DIR_SRC/toybox/. .
+cp -r "$DIR_SRC/toybox/." .
 # NOTE: Some of Toybox's scripts use GNU-specific behaviors. This patch replaces
 #       anything I was able to find with portable syntax. So far, the only issue
 #       I've found was a difference between POSIX tr and GNU tr, which behaves
 #       differently when the operands given are of different lengths. ~ahill
-patch -p1 < $DIR_PATCH/toybox-portability.patch
+patch -p1 < "$DIR_PATCH/toybox-portability.patch"
+# NOTE: Toybox checks all the standard(?) paths for pci.ids and usb.ids, but
+#       Maple Linux uses a unique hierarchy, so the following patch fixes Toybox
+#       for the system. ~ahill
+patch -p1 < "$DIR_PATCH/toybox-maple.patch"
 # NOTE: Toybox sees $TARGET and decides to append a suffix to the main program,
 #       which is not what I'm looking for. Yes, it's being cross-compiled, but
 #       the system that's running it doesn't need to be reminded of its own
@@ -329,9 +374,9 @@ patch -p1 < $DIR_PATCH/toybox-portability.patch
 #       than just the .config file. Attempting to build Toybox without running
 #       this first causes an error. ~ahill
 TARGET="" ./scripts/genconfig.sh -d
-cp $DIR_PATCH/toybox.config .config
+cp "$DIR_PATCH/toybox.config" .config
 LDFLAGS="-static" TARGET="" ./scripts/make.sh
-PREFIX=$DIR_MAPLE/bin TARGET="" ./scripts/install.sh --symlink
+PREFIX="$DIR_MAPLE/bin" TARGET="" ./scripts/install.sh --symlink
 
 
 STEP "Build and install netbsd-curses"

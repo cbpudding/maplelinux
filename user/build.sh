@@ -347,38 +347,6 @@ mv "$DIR_UNION/lib/pkgconfig"/* "$DIR_UNION/share/pkgconfig/"
 rm -rf "$DIR_UNION/lib/pkgconfig"
 
 
-STEP "Build and install hwdata"
-mkdir -p "$DIR_BUILD/build-hwdata"
-cd "$DIR_BUILD/build-hwdata"
-# NOTE: hwdata offers XFree86 1.0 as an alternative to GPL, but doesn't ship a
-#       copy of the license in the repository. After doing some digital
-#       archaeology, I was able to find a copy on the official XFree86 website,
-#       but I'm not sure how long it's going to be up. Thankfully, the Internet
-#       Archive's Wayback Machine seems to have saved a copy, so that will
-#       become the canonical source should the original site cease to exist.
-#       ~ahill
-# See also: http://ftp.xfree86.org/pub/XFree86/4.3.0/LICENSE
-#           https://web.archive.org/web/20071004104101/http://ftp.xfree86.org/pub/XFree86/4.3.0/LICENSE
-preserve_copyright hwdata "$DIR_SRC/hwdata/LICENSE" \
-    "$DIR_PATCH/XFree86-1.0.LICENSE"
-# NOTE: Not autotools, just something autoconf-like. ~ahill
-"$DIR_SRC/hwdata/configure" \
-    --disable-blacklist \
-    --libexecdir=/lib \
-    --prefix="" \
-    --sbindir=/bin
-# NOTE: Nothing to actually "make" here since hwdata is just data. ~ahill
-# NOTE: "make install" doesn't *really* work out-of-tree, despite the configure
-#       script seeming to support it at first. Setting IDFILES and VPATH to
-#       point it to the data it needs to install, and setting VERSION to set the
-#       proper version number, regardless of what the submodule is pointing at.
-#       ~ahill
-make install DESTDIR="$DIR_UNION" \
-    IDFILES='$(addprefix $(srcdir)/,pci.ids usb.ids oui.txt iab.txt pnp.ids)' \
-    VERSION="$(sed -n "s/^Version:[[:space:]]*//p" "$DIR_SRC/hwdata/hwdata.spec")" \
-    VPATH="$DIR_SRC/hwdata"
-
-
 STEP "Build and install libdisplay-info"
 preserve_copyright libdisplay-info "$DIR_SRC/libdisplay-info/LICENSE"
 mkdir -p "$DIR_BUILD/build-libdisplay-info"

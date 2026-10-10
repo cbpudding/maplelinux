@@ -1,0 +1,12 @@
+diff -ruN vanilla/toys/other/lsusb.c maple/toys/other/lsusb.c
+--- vanilla/toys/other/lsusb.c	2026-10-10 12:53:07.003185513 -0400
++++ maple/toys/other/lsusb.c	2026-10-10 12:55:16.596977143 -0400
+@@ -128,7 +128,7 @@
+ // Search for pci.ids or usb.ids and return parsed structure or NULL
+ struct dev_ids *parse_dev_ids(char *name, struct dev_ids **and)
+ {
+-  char *path = "/etc:/vendor:/usr/share/hwdata:/usr/share/misc";
++  char *path = "/share/hwdata";
+   struct string_list *sl = 0;
+   FILE *fp;
+   char *s, *ss, *sss;
