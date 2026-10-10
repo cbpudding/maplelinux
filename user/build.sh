@@ -15,7 +15,7 @@ preserve_copyright() {
     _softwaredir="$DIR_UNION/share/copyright/$1"
     mkdir -p "$_softwaredir"
     shift
-    cp "$@" "$_softwaredir"
+    cp -r "$@" "$_softwaredir"
 }
 
 STEP "Prepare the build environment"

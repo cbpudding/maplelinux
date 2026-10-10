@@ -15,7 +15,7 @@ preserve_copyright() {
     _softwaredir="$DIR_MAPLE/share/copyright/$1"
     mkdir -p "$_softwaredir"
     shift
-    cp "$@" "$_softwaredir"
+    cp -r "$@" "$_softwaredir"
 }
 
 STEP "Define the build environment"
@@ -178,11 +178,13 @@ ln -s $TARGET-gcc $DIR_TOOLS/bin/$TARGET-cc
 
 
 STEP "Install LuaDate"
-mkdir -p $DIR_MAPLE/share/lua/5.5
-cp $DIR_SRC/luadate/src/date.lua $DIR_MAPLE/share/lua/5.5/
+preserve_copyright luadate "$DIR_SRC/luadate/LICENSE"
+mkdir -p "$DIR_MAPLE/share/lua/5.5"
+cp "$DIR_SRC/luadate/src/date.lua" "$DIR_MAPLE/share/lua/5.5/"
 
 
 STEP "Patch and install liquid-lua"
+preserve_copyright liquid-lua "$DIR_SRC/liquid-lua/LICENSE"
 mkdir -p $DIR_BUILD/build-liquid-lua
 cd $DIR_BUILD/build-liquid-lua
 mkdir -p $DIR_MAPLE/share/lua/5.5
@@ -201,6 +203,8 @@ $CC -o "$DIR_TOOLS/mapleconf" \
 
 
 STEP "Build and install tz"
+# TODO: Extract licenses from source code ~ahill
+preserve_copyright tz "$DIR_SRC/tz/LICENSE"
 mkdir -p $DIR_BUILD/build-tz
 cd $DIR_BUILD/build-tz
 # NOTE: tz doesn't support out of tree builds. ~ahill
@@ -238,6 +242,7 @@ export STRIP="$TARGET-strip"
 
 
 STEP "Install Linux headers"
+preserve_copyright linux "$DIR_SRC/linux/COPYING" "$DIR_SRC/linux/LICENSES"
 mkdir -p $DIR_BUILD/build-linux
 cd $DIR_BUILD/build-linux
 make -C $DIR_SRC/linux -j $JOBS headers O=$(pwd)
@@ -246,6 +251,7 @@ cp -r usr/include $DIR_MAPLE/share/
 
 
 STEP "Build and install musl"
+preserve_copyright musl "$DIR_SRC/musl/COPYRIGHT"
 mkdir -p $DIR_BUILD/build-musl
 cd $DIR_BUILD/build-musl
 # NOTE: Since the source code needs to be patched, the source is copied here.
@@ -299,6 +305,7 @@ make install DESTDIR="$DIR_MAPLE" \
 
 
 STEP "Build and install Sortix libz (Not zlib!)"
+# TODO: Copy the notice from zlib.h ~ahill
 mkdir -p $DIR_BUILD/build-libz
 cd $DIR_BUILD/build-libz
 $DIR_SRC/libz/configure \
@@ -314,6 +321,7 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install LibreSSL"
+preserve_copyright libressl "$DIR_SRC/libressl/COPYING"
 mkdir -p $DIR_BUILD/build-libressl
 cd $DIR_BUILD/build-libressl
 # NOTE: No configure script. Copying the source tree here. ~ahill
@@ -352,6 +360,7 @@ ln -s libressl "$DIR_MAPLE/bin/openssl"
 
 
 STEP "Build and install toybox"
+preserve_copyright toybox "$DIR_SRC/toybox/LICENSE"
 mkdir -p "$DIR_BUILD/build-toybox"
 cd "$DIR_BUILD/build-toybox"
 # NOTE: I cannot figure out how the heck to build toybox outside of the source
@@ -380,6 +389,7 @@ PREFIX="$DIR_MAPLE/bin" TARGET="" ./scripts/install.sh --symlink
 
 
 STEP "Build and install netbsd-curses"
+preserve_copyright netbsd-curses "$DIR_SRC/netbsd-curses/COPYING"
 mkdir -p $DIR_BUILD/build-netbsd-curses
 cd $DIR_BUILD/build-netbsd-curses
 # NOTE: The Makefile doesn't support out-of-tree builds, so the source code is
@@ -395,6 +405,7 @@ cp terminfo/terminfo.cdb "$DIR_MAPLE/share/"
 
 
 STEP "Build and install zsh"
+preserve_copyright zsh "$DIR_SRC/zsh/LICENCE"
 # TODO: Review completions to see which directories are even necessary for Maple
 #       Linux. ~ahill
 mkdir -p $DIR_BUILD/build-zsh
@@ -436,6 +447,7 @@ ln -s zsh "$DIR_MAPLE/bin/sh"
 
 
 STEP "Build and install Hummingbird"
+preserve_copyright hummingbird "$DIR_SRC/hummingbird/LICENSE"
 mkdir -p $DIR_BUILD/build-hummingbird
 cd $DIR_BUILD/build-hummingbird
 # NOTE: Yes, an out of tree build is incredibly easy to do in this case, but the
@@ -468,6 +480,7 @@ dd bs=512 count=1 if=/dev/urandom of=$DIR_MAPLE/etc/hummingbird/random.seed \
 
 
 STEP "Build and install skalibs"
+preserve_copyright skalibs "$DIR_SRC/skalibs/COPYING"
 mkdir -p $DIR_BUILD/build-skalibs
 cd $DIR_BUILD/build-skalibs
 # NOTE: Skalibs does not support out of tree builds, so we copy the tree here to
@@ -493,6 +506,7 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
 
 STEP "Build and install mdevd"
+preserve_copyright mdevd "$DIR_SRC/mdevd/COPYING"
 mkdir -p $DIR_BUILD/build-mdevd
 cd $DIR_BUILD/build-mdevd
 # NOTE: mdevd does not support out of tree builds, so we copy the tree here to
@@ -516,6 +530,8 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE
 
 
 STEP "Build and install libelf"
+preserve_copyright libelf "$DIR_SRC/libelf/COPYING-GPLV2" \
+    "$DIR_SRC/libelf/COPYING-LGPLV3"
 mkdir -p "$DIR_BUILD/build-libelf"
 cd "$DIR_BUILD/build-libelf"
 # NOTE: libelf is copied here since the source code needs to be patched. ~ahill
@@ -556,6 +572,7 @@ fi
 
 
 STEP "Build and install ndhc"
+preserve_copyright ndhc "$DIR_SRC/ndhc/LICENSE"
 mkdir -p $DIR_BUILD/build-ndhc
 cd $DIR_BUILD/build-ndhc
 # NOTE: ndhc does not support out-of-tree builds, so we copy the source here.
@@ -577,6 +594,7 @@ chmod g+w "$NDHCJAIL/var/run"
 
 
 STEP "Build and install chrony"
+preserve_copyright chrony "$DIR_SRC/chrony/COPYING"
 mkdir -p $DIR_BUILD/build-chrony
 cd $DIR_BUILD/build-chrony
 # NOTE: Out of tree builds for chrony are broken. ~ahill
@@ -610,6 +628,7 @@ mkdir -p $DIR_MAPLE/etc/chrony
 
 
 STEP "Build and install Heirloom Toolchest"
+preserve_copyright heirloom-toolchest "$DIR_SRC/heirloom-toolchest/LICENSE"
 mkdir -p $DIR_BUILD/build-heirloom-toolchest
 cd $DIR_BUILD/build-heirloom-toolchest
 # NOTE: Out of tree builds aren't possible with Makefiles this old. ~ahill
@@ -658,6 +677,7 @@ cp $DIR_SRC/heirloom-toolchest/tr/tr.1 $DIR_MAPLE/share/man/man1/
 
 
 STEP "Build and install gettext-tiny"
+preserve_copyright gettext-tiny "$DIR_SRC/gettext-tiny/LICENSE"
 mkdir -p $DIR_BUILD/build-gettext-tiny
 cd $DIR_BUILD/build-gettext-tiny
 # TODO: Check to see if this supports an out-of-tree build or not. ~ahill
@@ -667,6 +687,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includedir=/share/include prefix="
 
 
 STEP "Build and install awk"
+preserve_copyright awk "$DIR_SRC/awk/LICENSE"
 mkdir -p $DIR_BUILD/build-awk
 cd $DIR_BUILD/build-awk
 # NOTE: I'm sensing a pattern here, but there's no out of tree build. ~ahill
@@ -688,6 +709,7 @@ cp awk.1 $DIR_MAPLE/share/man/man1/
 
 
 STEP "Build and install byacc"
+preserve_copyright byacc "$DIR_SRC/byacc/LICENSE"
 mkdir -p $DIR_BUILD/build-byacc
 cd $DIR_BUILD/build-byacc
 # NOTE: Despite being based on autotools, this script gave no static or sysroot
@@ -710,7 +732,16 @@ cp yacc $DIR_MAPLE/bin/byacc
 ln -s byacc $DIR_MAPLE/bin/yacc
 
 
+STEP "Document gnulib license"
+# TODO: Scan the source code to detect license headers. ~ahill
+preserve_copyright gnulib "$DIR_SRC/gnulib/COPYING" \
+    "$DIR_SRC/gnulib/doc/COPYING.LESSERv2" \
+    "$DIR_SRC/gnulib/doc/COPYING.LESSERv3" "$DIR_SRC/gnulib/doc/COPYINGv2" \
+    "$DIR_SRC/gnulib/doc/COPYINGv3"
+
+
 STEP "Build and install m4"
+preserve_copyright m4 "$DIR_SRC/m4/COPYING"
 mkdir -p $DIR_BUILD/build-m4
 cd $DIR_BUILD/build-m4
 # NOTE: Technically, m4 supports building outside of the source tree, but the
@@ -749,6 +780,7 @@ make -O -j $JOBS install DESTDIR=$DIR_MAPLE MAKEINFO=true
 
 
 STEP "Build and install make"
+preserve_copyright make "$DIR_SRC/make/COPYING"
 mkdir -p $DIR_BUILD/build-make
 cd $DIR_BUILD/build-make
 # NOTE: Like a lot of GNU software, the configure script needs to be
@@ -780,6 +812,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" MAKEINFO=true
 
 
 STEP "Build and install bc"
+preserve_copyright bc "$DIR_SRC/bc/LICENSE.md" "$DIR_SRC/bc/NOTICE.md"
 mkdir -p $DIR_BUILD/build-bc
 cd $DIR_BUILD/build-bc
 # NOTE: bc does not respect the prefix when installing locales, so locales are
@@ -796,6 +829,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Build and install flex"
+preserve_copyright flex "$DIR_SRC/flex/COPYING"
 mkdir $DIR_BUILD/build-flex
 cd $DIR_BUILD/build-flex
 # NOTE: Copying the source tree to the build folder since there's no configure
@@ -834,6 +868,10 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" dist_man_MANS="" INFO_DEPS=""
 
 
 STEP "Build and install Perl"
+preserve_copyright perl "$DIR_SRC/perl/Artistic" "$DIR_SRC/perl/Copying" \
+    "$DIR_SRC/perl/README"
+preserve_copyright perl/perl-cross "$DIR_SRC/perl-cross/Artistic" \
+    "$DIR_SRC/perl-cross/Copying" "$DIR_SRC/perl-cross/LICENSE"
 mkdir -p $DIR_BUILD/build-perl
 cd $DIR_BUILD/build-perl
 # NOTE: Perl doesn't have the ability to properly cross-compile itself, so
@@ -871,6 +909,8 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Build and install autoconf"
+preserve_copyright autoconf "$DIR_SRC/autoconf/COPYING" \
+    "$DIR_SRC/autoconf/COPYING.EXCEPTION" "$DIR_SRC/autoconf/COPYINGv3"
 mkdir -p $DIR_BUILD/build-autoconf
 cd $DIR_BUILD/build-autoconf
 # NOTE: Since there is no configure script, the project needs to be
@@ -898,6 +938,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" dist_man_MANS="" INFO_DEPS="" \
 
 
 STEP "Build and install automake"
+preserve_copyright automake "$DIR_SRC/automake/COPYING"
 mkdir -p $DIR_BUILD/build-automake
 cd $DIR_BUILD/build-automake
 # NOTE: Since there is no configure script, the project needs to be
@@ -928,6 +969,8 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" dist_doc_DATA="" INFO_DEPS="" \
 
 
 STEP "Build and install slibtool"
+preserve_copyright slibtool "$DIR_SRC/slibtool/COPYING.SLIBTOOL" \
+     "$DIR_SRC/slibtool/COPYING.SOFORT"
 mkdir -p $DIR_BUILD/build-slibtool
 cd $DIR_BUILD/build-slibtool
 # NOTE: This isn't using autoconf/automake, so I'm not sure what the default
@@ -961,6 +1004,7 @@ ln -s slibtoolize $DIR_MAPLE/bin/libtoolize
 
 
 STEP "Build and install git"
+preserve_copyright git "$DIR_SRC/git/COPYING" "$DIR_SRC/git/LGPL-2.1"
 mkdir -p $DIR_BUILD/build-git
 cd $DIR_BUILD/build-git
 # NOTE: There's no way to configure git outside of the Makefile, so I'm copying
@@ -994,6 +1038,8 @@ make -O -j $JOBS install \
 
 
 STEP "Build and install GMP"
+preserve_copyright gmp "$DIR_SRC/gmp/COPYING.LESSERv3" \
+    "$DIR_SRC/gmp/COPYINGv2" "$DIR_SRC/gmp/COPYINGv3"
 mkdir -p $DIR_BUILD/build-gmp
 cd $DIR_BUILD/build-gmp
 # NOTE: GMP needs to be bootstrapped, so the source tree is copied to the build
@@ -1036,6 +1082,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" includeexecdir=/share/include \
 
 
 STEP "Build and install MPFR"
+preserve_copyright mpfr "$DIR_SRC/mpfr/COPYING" "$DIR_SRC/mpfr/COPYING.LESSER"
 mkdir -p $DIR_BUILD/build-mpfr
 cd $DIR_BUILD/build-mpfr
 # NOTE: Yet another repository that needs a configure script. ~ahill
@@ -1067,6 +1114,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INFO_DEPS="" \
 
 
 STEP "Build and install MPC"
+preserve_copyright mpc "$DIR_SRC/mpc/COPYING.LESSER"
 mkdir -p $DIR_BUILD/build-mpc
 cd $DIR_BUILD/build-mpc
 # NOTE: This repository doesn't contain a configure OR an autogen.sh script, so
@@ -1095,6 +1143,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" INFO_DEPS="" \
 
 
 STEP "Build and install pkgconf"
+preserve_copyright pkgconf "$DIR_SRC/pkgconf/COPYING"
 # FIXME: This is probably the last pkgconf version to ship with autotools, which
 #        is great, but I need to convert the following instructions to muon for
 #        future upgrades. ~ahill
@@ -1127,6 +1176,7 @@ ln -s pkgconf "$DIR_MAPLE/bin/pkg-config"
 
 
 STEP "Build and install tomlc17"
+preserve_copyright tomlc17 "$DIR_SRC/tomlc17/LICENSE"
 mkdir -p $DIR_BUILD/build-tomlc17
 cd $DIR_BUILD/build-tomlc17
 # NOTE: The source tree needs to be copied to preserve source immutability.
@@ -1141,6 +1191,7 @@ cp src/tomlcpp.hpp $DIR_MAPLE/share/include/
 
 
 STEP "Build and install Lua"
+# TODO: Once again, the license is inside of the source code. ~ahill
 mkdir -p $DIR_BUILD/build-lua
 cd $DIR_BUILD/build-lua
 # NOTE: Lua is an old-school Makefile that doesn't support out of tree builds,
@@ -1172,6 +1223,7 @@ cp $DIR_PATCH/lua.hpp $DIR_MAPLE/share/include/
 
 
 STEP "Build and install mapleconf"
+preserve_copyright mapleconf "$DIR_BASE/../LICENSE"
 $CC -o $DIR_MAPLE/bin/mapleconf \
     --embed-dir="$DIR_MAPLE/share/lua/5.5" \
     $DIR_SRC/mapleconf/mapleconf.c \
@@ -1181,6 +1233,7 @@ cp $DIR_BASE/maple.toml $DIR_MAPLE/etc/
 
 
 STEP "Build and install kmod"
+preserve_copyright kmod "$DIR_SRC/kmod/COPYING"
 # FIXME: Future releases of kmod will require Meson. This should be updated to
 #        use muon instead. ~ahill
 mkdir -p $DIR_BUILD/build-kmod
@@ -1213,6 +1266,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Build and install e2fsprogs"
+preserve_copyright e2fsprogs "$DIR_SRC/e2fsprogs/NOTICE"
 mkdir -p $DIR_BUILD/build-e2fsprogs
 cd $DIR_BUILD/build-e2fsprogs
 $DIR_SRC/e2fsprogs/configure \
@@ -1240,11 +1294,13 @@ make -O -j $JOBS install BLKID_PROG="" BLKID_MAN="" DESTDIR="$DIR_MAPLE" \
 
 
 STEP "Build and install kilo"
+preserve_copyright kilo "$DIR_SRC/kilo/LICENSE"
 # NOTE: Why the heck can't all software be this simple to build? ~ahill
 $CC -o "$DIR_MAPLE/bin/kilo" "$DIR_SRC/kilo/kilo.c" -pedantic -static -std=c99
 
 
 STEP "Build and install nasm"
+preserve_copyright nasm "$DIR_SRC/nasm/LICENSE"
 mkdir -p $DIR_BUILD/build-nasm
 cd $DIR_BUILD/build-nasm
 # NOTE: Yet another autotools build without a committed configure script. ~ahill
@@ -1273,6 +1329,18 @@ cp ndisasm "$DIR_MAPLE/bin/"
 
 
 STEP "Build and install Limine"
+preserve_copyright limine "$DIR_SRC/limine/COPYING" "$DIR_SRC/limine/LICENSES"
+preserve_copyright limine/cc-runtime "$DIR_SRC/cc-runtime/LICENSE.TXT"
+preserve_copyright limine/flanterm "$DIR_SRC/flanterm/LICENSE"
+preserve_copyright limine/freestanding-c-hdrs \
+    "$DIR_SRC/freestanding-c-hdrs/LICENSE"
+preserve_copyright limine/libfdt "$DIR_SRC/libfdt/BSD-2-Clause" \
+    "$DIR_SRC/libfdt/GPL"
+preserve_copyright limine/limine-protocol "$DIR_SRC/limine-protocol/LICENSE"
+preserve_copyright limine/pdgzip "$DIR_SRC/pdgzip/LICENSE"
+preserve_copyright limine/picoefi "$DIR_SRC/picoefi/COPYING" \
+    "$DIR_SRC/picoefi/LICENSES"
+preserve_copyright limine/stbi-hardened "$DIR_SRC/stbi-hardened/LICENSE"
 mkdir -p $DIR_BUILD/build-limine
 cd $DIR_BUILD/build-limine
 # NOTE: Limine requires a bootstrap that requires network access to git clone,
@@ -1293,6 +1361,7 @@ cp stbi-hardened/include/stb_image.h common/lib/stb_image.h
 # NOTE: Limine has a bug where it is unable to get the current version from git
 #       because .git is a file instead of a directory, which is normal for a
 #       submodule. As a result, Limine shows UNVERSIONED at boot. ~ahill
+# See also: https://github.com/Limine-Bootloader/Limine/pull/662
 patch -p1 < $DIR_PATCH/limine-submodversion.patch
 patch -p0 < common/stb_image.patch
 rm -f common/lib/stb_image.h.orig
@@ -1325,6 +1394,7 @@ cp "$DIR_MAPLE/share/limine/BOOTX64.EFI" "$DIR_MAPLE/boot/EFI/BOOT/"
 
 
 STEP "Build and install ubase"
+preserve_copyright ubase "$DIR_SRC/ubase/LICENSE"
 mkdir -p $DIR_BUILD/build-ubase
 cd $DIR_BUILD/build-ubase
 cp -r $DIR_SRC/ubase/. .
@@ -1344,6 +1414,7 @@ cp vtallow "$DIR_MAPLE/bin/"
 
 
 STEP "Build and install dosfstools"
+preserve_copyright dosfstools "$DIR_SRC/dosfstools/COPYING"
 mkdir -p $DIR_BUILD/build-dosfstools
 cd $DIR_BUILD/build-dosfstools
 # NOTE: Another source tree that requires a bootstrap. ~ahill
@@ -1370,6 +1441,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Build and install libmd"
+preserve_copyright libmd "$DIR_SRC/libmd/COPYING"
 mkdir -p $DIR_BUILD/build-libmd
 cd $DIR_BUILD/build-libmd
 # NOTE: Needs to be bootstrapped, so the source is copied here. ~ahill
@@ -1395,6 +1467,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install libbsd"
+preserve_copyright libbsd "$DIR_SRC/libbsd/COPYING"
 mkdir -p $DIR_BUILD/build-libbsd
 cd $DIR_BUILD/build-libbsd
 # NOTE: Needs to be bootstrapped, so the source is copied here. ~ahill
@@ -1426,6 +1499,8 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" pkgconfigdir=/share/pkgconfig
 
 
 STEP "Build and install netbsd-gpt"
+# TODO: Scan the upstream source to determine copyrights ~ahill
+preserve_copyright netbsd-gpt "$DIR_SRC/netbsd-gpt/LICENSE"
 mkdir -p $DIR_BUILD/build-netbsd-gpt
 cd $DIR_BUILD/build-netbsd-gpt
 # NOTE: Old-school Makefile. Copying the source to the build directory. ~ahill
@@ -1437,6 +1512,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" MANDIR=/share/man SBINDIR=/bin
 
 
 STEP "Build and install libnl-tiny"
+# TODO: Scan the upstream source to determine copyrights ~ahill
 mkdir -p $DIR_BUILD/build-libnl-tiny
 cd $DIR_BUILD/build-libnl-tiny
 # NOTE: libnl-tiny uses CMake as its build system, but the project is simple
@@ -1458,6 +1534,7 @@ cp -r "$DIR_SRC/libnl-tiny/include/." "$DIR_MAPLE/share/include/libnl-tiny/"
 
 
 STEP "Build and install hostap"
+preserve_copyright hostap "$DIR_SRC/hostap/COPYING"
 mkdir -p $DIR_BUILD/build-hostap
 cd $DIR_BUILD/build-hostap
 # NOTE: Makefile doesn't support out-of-tree builds. ~ahill
@@ -1469,6 +1546,7 @@ make -C wpa_supplicant -O -j $JOBS install BINDIR=/bin DESTDIR="$DIR_MAPLE" \
 
 
 STEP "Build and install doas"
+# TODO: Scan the upstream source to determine copyrights ~ahill
 mkdir -p $DIR_BUILD/build-doas
 cd $DIR_BUILD/build-doas
 # NOTE: Using a Makefile with no out-of-tree build capabilities ~ahill
@@ -1480,6 +1558,7 @@ cp doas "$DIR_MAPLE/bin/"
 
 
 STEP "Build and install muon"
+preserve_copyright muon "$DIR_SRC/muon/LICENSES"
 mkdir -p $DIR_BUILD/build-muon
 cd $DIR_BUILD/build-muon
 # NOTE: libpkgconf is currently disabled since the latest version of pkgconf
@@ -1513,6 +1592,7 @@ DESTDIR="$DIR_MAPLE" ./muon-bootstrap install
 
 
 STEP "Build and install sysklogd"
+preserve_copyright sysklogd "$DIR_SRC/sysklogd/LICENSE"
 mkdir -p "$DIR_BUILD/build-sysklogd"
 cd "$DIR_BUILD/build-sysklogd"
 # NOTE: Another autotools consumer... *sigh* ~ahill
@@ -1535,6 +1615,7 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Install maplelinux-tools"
+preserve_copyright maplelinux-tools "$DIR_BASE/../LICENSE"
 # FIXME: maple-chroot is currently incompatible with Toybox's mount/umount!
 #        ~ahill
 cp -r "$DIR_SRC/maplelinux-tools/." "$DIR_MAPLE/bin/"
@@ -1544,6 +1625,7 @@ cp -r "$DIR_SRC/maplelinux-tools/." "$DIR_MAPLE/bin/"
 # Everything that doesn't require C++ should be before this step. ~ahill #
 ##########################################################################
 STEP "Build and install libstdc++"
+# NOTE: Copyright later covered by GCC. ~ahill
 mkdir -p $DIR_BUILD/build-libstdc++
 cd $DIR_BUILD/build-libstdc++
 # NOTE: Even though this is GPL-licensed, I'm building the static version of
@@ -1575,6 +1657,7 @@ find $DIR_MAPLE/lib -type f -name "*.la" -delete
 
 
 STEP "Build and install gperf"
+preserve_copyright gperf "$DIR_SRC/gperf/COPYING"
 # NOTE: I added this for GNU m4, which is pending replacement with my fork of
 #       Quasar m4. ~ahill
 mkdir -p $DIR_BUILD/build-gperf
@@ -1602,6 +1685,11 @@ make -C src -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 
 
 STEP "Build and install binutils"
+preserve_copyright binutils "$DIR_SRC/binutils-gdb/COPYING" \
+    "$DIR_SRC/binutils-gdb/COPYING.LIB" \
+    "$DIR_SRC/binutils-gdb/COPYING.LIBGLOSS" \
+    "$DIR_SRC/binutils-gdb/COPYING.NEWLIB" "$DIR_SRC/binutils-gdb/COPYING3" \
+    "$DIR_SRC/binutils-gdb/COPYING3.LIB"
 mkdir -p $DIR_BUILD/build-binutils
 cd $DIR_BUILD/build-binutils
 # TODO: Investigate --with-lib-path for binutils to prevent future issues with
@@ -1629,7 +1717,8 @@ patch -p1 < $DIR_PATCH/gdb-musl-compat.patch
     --sharedstatedir=/etc \
     --target=$TARGET \
     --with-build-sysroot="$DIR_MAPLE" \
-    --with-gcc-major-version-only
+    --with-gcc-major-version-only \
+    --with-system-zlib
 # NOTE: tooldir is manually set here to prevent binutils from creating a
 #       /$TARGET directory. ~ahill
 # NOTE: binutils requires texinfo to build documentation, with no way to disable
@@ -1643,6 +1732,9 @@ make -O -j $JOBS install DESTDIR="$DIR_MAPLE" MAKEINFO=true tooldir=""
 
 
 STEP "Build and install gcc"
+preserve_copyright gcc "$DIR_SRC/gcc/COPYING" "$DIR_SRC/gcc/COPYING.LIB" \
+     "$DIR_SRC/gcc/COPYING.RUNTIME" "$DIR_SRC/gcc/COPYING3" \
+     "$DIR_SRC/gcc/COPYING3.LIB"
 mkdir -p $DIR_BUILD/build-gcc
 cd $DIR_BUILD/build-gcc
 # NOTE: Technically, gcc supports an out-of-tree build, but GCC doesn't conform
@@ -1693,7 +1785,8 @@ LDFLAGS_FOR_TARGET="-L$(pwd)/$TARGET/libgcc" ../configure \
     --with-build-sysroot=$DIR_MAPLE \
     --with-gcc-major-version-only \
     --with-gxx-include-dir=/share/include/c++/16 \
-    --with-native-system-header-dir=/share/include
+    --with-native-system-header-dir=/share/include \
+    --with-system-zlib
 make -O -j $JOBS
 make -O -j $JOBS install DESTDIR="$DIR_MAPLE"
 ln -s gcc $DIR_MAPLE/bin/cc
