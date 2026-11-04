@@ -30,7 +30,7 @@ Unlike most Linux distributions, which are package-based, Maple Linux builds and
 | ------------ | --------- | ----------- |
 | ARM          | Planned   | Planned     |
 | RISC-V       | Planned   | Planned     |
-| x86_64       | Supported | In Progress |
+| x86_64       | Supported | Planned     |
 
 ## Design
 
