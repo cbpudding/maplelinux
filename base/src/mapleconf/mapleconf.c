@@ -57,7 +57,12 @@ bool render_file(lua_State *state, char *template_path, char *path) {
     lua_pushstring(state, path);
 
     if(lua_pcall(state, 2, 0, 0) != LUA_OK) {
-        fprintf(stderr, "%s: %s\n", template_path, lua_tostring(state, -1));
+        fprintf(
+            stderr,
+            "mapleconf: %s: %s\n",
+            template_path,
+            lua_tostring(state, -1)
+        );
         lua_pop(state, 1);
         return false;
     }
@@ -75,7 +80,7 @@ bool render_directory(lua_State *state, char *template_path, char *root_path) {
 
     directory = opendir(template_path);
     if(!directory) {
-        fprintf(stderr, "%s: %s\n", template_path, strerror(errno));
+        fprintf(stderr, "mapleconf: %s: %s\n", template_path, strerror(errno));
         return false;
     }
 
@@ -93,7 +98,12 @@ bool render_directory(lua_State *state, char *template_path, char *root_path) {
         sprintf(fullpath_template, "%s/%s", template_path, entry->d_name);
 
         if(stat(fullpath_template, &status)) {
-            fprintf(stderr, "%s: %s\n", fullpath_template, strerror(errno));
+            fprintf(
+                stderr,
+                "mapleconf: %s: %s\n",
+                fullpath_template,
+                strerror(errno)
+            );
             free(fullpath_root);
             free(fullpath_template);
             success = false;
@@ -102,10 +112,10 @@ bool render_directory(lua_State *state, char *template_path, char *root_path) {
 
         if(S_ISDIR(status.st_mode)) {
             if(access(fullpath_root, F_OK)) {
-                if(!mkdir(fullpath_root, status.st_mode & 07777)) {
+                if(mkdir(fullpath_root, status.st_mode & 07777)) {
                     fprintf(
                         stderr,
-                        "%s: mkdir: %s\n",
+                        "mapleconf: %s: mkdir: %s\n",
                         fullpath_root,
                         strerror(errno)
                     );
@@ -158,7 +168,7 @@ int push_configuration_table(toml_datum_t *datum, lua_State *state) {
             if(lua_pcall(state, 3, 1, 0) != LUA_OK) {
                 fprintf(
                     stderr,
-                    "%s:%u:%u: %s\n",
+                    "mapleconf: %s:%u:%u: %s\n",
                     datum->source,
                     datum->lineno,
                     datum->colno,
@@ -182,7 +192,7 @@ int push_configuration_table(toml_datum_t *datum, lua_State *state) {
             if(lua_pcall(state, 6, 1, 0) != LUA_OK) {
                 fprintf(
                     stderr,
-                    "%s:%u:%u: %s\n",
+                    "mapleconf: %s:%u:%u: %s\n",
                     datum->source,
                     datum->lineno,
                     datum->colno,
@@ -232,7 +242,7 @@ int push_configuration_table(toml_datum_t *datum, lua_State *state) {
             if(lua_pcall(state, 1, 1, 0) != LUA_OK) {
                 fprintf(
                     stderr,
-                    "%s:%u:%u: %s\n",
+                    "mapleconf: %s:%u:%u: %s\n",
                     datum->source,
                     datum->lineno,
                     datum->colno,
@@ -251,7 +261,7 @@ int push_configuration_table(toml_datum_t *datum, lua_State *state) {
         default:
             fprintf(
                 stderr,
-                "Unknown TOML type encountered: %u. Please report this bug!\n",
+                "mapleconf: Unknown TOML type encountered: %u.\n",
                 datum->type
             );
             status = 1;
@@ -264,7 +274,10 @@ int push_configuration_table(toml_datum_t *datum, lua_State *state) {
 
 int require_lua_module(lua_State *state, const char *module) {
     if(lua_getglobal(state, "require") != LUA_TFUNCTION) {
-        fprintf(stderr, "Lua global \"require\" is somehow not a function?\n");
+        fprintf(
+            stderr,
+            "mapleconf: Lua global \"require\" is somehow not a function?\n"
+        );
         lua_pop(state, 1);
         return 1;
     }
@@ -274,7 +287,7 @@ int require_lua_module(lua_State *state, const char *module) {
     if(lua_pcall(state, 1, 1, 0) != LUA_OK) {
         fprintf(
             stderr,
-            "Failed to require \"%s\": %s\n",
+            "mapleconf: Failed to require \"%s\": %s\n",
             module,
             lua_tostring(state, -1)
         );
@@ -295,7 +308,10 @@ lua_State *init_template_engine(toml_result_t *config) {
 
     state = luaL_newstate();
     if(!state) {
-        fprintf(stderr, "Failed to initialize Lua. Is there enough memory?\n");
+        fprintf(
+            stderr,
+            "mapleconf: Failed to initialize Lua. Is there enough memory?\n"
+        );
         return NULL;
     }
 
@@ -310,7 +326,7 @@ lua_State *init_template_engine(toml_result_t *config) {
     ) != LUA_OK) {
         fprintf(
             stderr,
-            "Error while loading mapleconf.lua: %s\n",
+            "mapleconf: Error while loading mapleconf.lua: %s\n",
             lua_tostring(state, -1)
         );
         lua_close(state);
@@ -320,7 +336,7 @@ lua_State *init_template_engine(toml_result_t *config) {
     if(lua_pcall(state, 0, 0, 0) != LUA_OK) {
         fprintf(
             stderr,
-            "Error while initializing mapleconf.lua: %s\n",
+            "mapleconf: Error while initializing mapleconf.lua: %s\n",
             lua_tostring(state, -1)
         );
         lua_close(state);
@@ -340,7 +356,7 @@ lua_State *init_template_engine(toml_result_t *config) {
     ) != LUA_OK) {
         fprintf(
             stderr,
-            "Error while preloading LuaDate: %s\n",
+            "mapleconf: Error while preloading LuaDate: %s\n",
             lua_tostring(state, -1)
         );
         lua_close(state);
@@ -356,7 +372,7 @@ lua_State *init_template_engine(toml_result_t *config) {
     ) != LUA_OK) {
         fprintf(
             stderr,
-            "Error while preloading liquid-lua: %s\n",
+            "mapleconf: Error while preloading liquid-lua: %s\n",
             lua_tostring(state, -1)
         );
         lua_close(state);
@@ -382,7 +398,7 @@ lua_State *init_template_engine(toml_result_t *config) {
     lua_pushvalue(state, -2);
 
     if(push_configuration_table(&config->toptab, state)) {
-        fprintf(stderr, "Malformed TOML configuration. Aborting.\n");
+        fprintf(stderr, "mapleconf: Malformed TOML configuration. Aborting.\n");
         lua_close(state);
         return NULL;
     }
@@ -390,7 +406,7 @@ lua_State *init_template_engine(toml_result_t *config) {
     if(lua_pcall(state, 2, 1, 0) != LUA_OK) {
         fprintf(
             stderr,
-            "Failed to initialize context: %s\n",
+            "mapleconf: Failed to initialize context: %s\n",
             lua_tostring(state, -1)
         );
         lua_close(state);
@@ -421,7 +437,7 @@ int build_configuration(
     if(!default_toml.ok) {
         fprintf(
             stderr,
-            "Failed to parse mapleconf.toml. Please recompile!\n%s\n",
+            "mapleconf: Failed to parse mapleconf.toml. Please recompile!\n%s\n",
             default_toml.errmsg
         );
         toml_free(default_toml);
@@ -431,7 +447,12 @@ int build_configuration(
     config_toml = toml_parse_file_ex(config_path);
 
     if(!config_toml.ok) {
-        fprintf(stderr, "Failed to load %s: %s\n", config_path, config_toml.errmsg);
+        fprintf(
+            stderr,
+            "mapleconf: Failed to load %s: %s\n",
+            config_path,
+            config_toml.errmsg
+        );
         toml_free(config_toml);
         toml_free(default_toml);
         return 1;
@@ -444,7 +465,7 @@ int build_configuration(
     if(!config.ok) {
         fprintf(
             stderr,
-            "Failed to merge %s with defaults: %s\n",
+            "mapleconf: Failed to merge %s with defaults: %s\n",
             config_path,
             config.errmsg
         );
@@ -456,7 +477,7 @@ int build_configuration(
     toml_free(config);
 
     if(!state) {
-        fprintf(stderr, "Failed to initialize Lua. Aborting.\n");
+        fprintf(stderr, "mapleconf: Failed to initialize Lua. Aborting.\n");
         return 1;
     }
 
